@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~4.0.0",
+    "eas-cli": "^14.2.0",
     "expo": "~52.0.20",
     "expo-status-bar": "~2.0.0",
     "nativewind": "^4.1.23",
@@ -21,7 +22,8 @@
     "react-native-safe-area-context": "^5.0.0",
     "react-native-web": "~0.19.13",
     "tailwindcss": "^3.4.17",
-    "with-rn-bluetooth-classic": "^1.0.5"
+    "with-rn-bluetooth-classic": "^1.0.5",
+    "expo-dev-client": "~5.0.6"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

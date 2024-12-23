@@ -21,13 +21,22 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.app"
+      "package": "com.anonymous.app",
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_ADVERTISE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-"plugins": [
-      ["with-rn-bluetooth-classic",
+    "plugins": [
+      [
+        "with-rn-bluetooth-classic",
         {
           "peripheralUsageDescription": "Allow myDevice to check bluetooth peripheral info",
           "alwaysUsageDescription": "Allow myDevice to always use bluetooth info",
@@ -37,6 +46,12 @@
           ]
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "aacae506-931c-41ac-abeb-faf4a86da14b"
+      }
+    },
+    "owner": "401adi"
   }
 }
