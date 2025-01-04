@@ -4,44 +4,33 @@
 
 #define PIN_ENABLE 2
 
-const char text1[] = "napis1";
-const char text2[] = "napis2";
-const char* aktualnyNapis = text1;
-
-void displayFrame() {
-
+void plansza1() {
   display.setFullWindow();
   display.firstPage();
   do {
     display.fillScreen(GxEPD_WHITE);
-    for (int i = 0; i < 50; i++) {
-      display.drawRect(i, i, display.width() - 2 * i, display.height() - 2 * i, GxEPD_BLACK);
-    }
+    display.setCursor(10, 30);
+    display.print("plansza 1");
   } while (display.nextPage());
 }
 
-void displayTextPartial(const char* text) {
-
-  int16_t tbx, tby;
-  uint16_t tbw, tbh;
-  display.getTextBounds(text, 0, 0, &tbx, &tby, &tbw, &tbh);
-
-  uint16_t x = ((display.width() - tbw) / 2) - tbx;
-  uint16_t y = ((display.height() - tbh) / 2) - tby;
-
-  uint16_t frameX = x + tbx - 10; 
-  uint16_t frameY = y + tby - 10;
-  uint16_t frameWidth = tbw + 20; 
-  uint16_t frameHeight = tbh + 20;
-
-  display.setPartialWindow(frameX, frameY, frameWidth, frameHeight);
+void plansza2() {
+  display.setFullWindow();
   display.firstPage();
   do {
     display.fillScreen(GxEPD_WHITE);
-    display.drawRect(frameX, frameY, frameWidth, frameHeight, GxEPD_BLACK);
+    display.setCursor(10, 30);
+    display.print("plansza 2");
+  } while (display.nextPage());
+}
 
-    display.setCursor(x, y);
-    display.print(text);
+void plansza3() {
+  display.setFullWindow();
+  display.firstPage();
+  do {
+    display.fillScreen(GxEPD_WHITE);
+    display.setCursor(10, 30);
+    display.print("plansza 3");
   } while (display.nextPage());
 }
 
@@ -49,23 +38,29 @@ void setup() {
   pinMode(PIN_ENABLE, OUTPUT);
   digitalWrite(PIN_ENABLE, HIGH);
   display.init(115200, true, 2, false);
-  display.setRotation(1);
+  display.setRotation(0);
   display.setFont(&FreeMonoBold9pt7b);
   display.setTextColor(GxEPD_BLACK);
 
-
-  displayFrame();
+  Serial.begin(115200);
 }
 
 void loop() {
-
-  displayTextPartial(aktualnyNapis);
-
-  if (aktualnyNapis == text1) {
-    aktualnyNapis = text2;
-  } else {
-    aktualnyNapis = text1;
+  if (Serial.available() > 0) {
+    char input = Serial.read(); 
+    switch (input) {
+      case '1':
+        plansza1();
+        break;
+      case '2':
+        plansza2();
+        break;
+      case '3':
+        plansza3();
+        break;
+      default:
+        break;
+    }
+    delay(100); 
   }
-
-  delay(1);
 }
