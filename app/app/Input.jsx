@@ -7,20 +7,13 @@ const Input = () => {
 
     const [text, setText] = useState("");
     
-  console.log(RNBluetoothClassic);
   
   const handleSendData = async () => {
     try {
       // Check if Bluetooth is enabled
-      const isEnabled = await RNBluetoothClassic.isBluetoothEnabled();
-      if (!isEnabled) {
-        Alert.alert("Bluetooth Disabled", "Please enable Bluetooth to send data.");
-        return;
-      }
-
-      // Logic to send data if Bluetooth is enabled
-      Alert.alert("Data Sent", `Data: ${text}`);
-      setText(""); // Clear the input field
+      const isAvailable = await RNBluetoothClassic.getConnectedDevices();
+      console.log(isAvailable)
+   
     } catch (error) {
       Alert.alert("Error", "Failed to check Bluetooth status. Please try again.");
       console.error("Bluetooth check error:", error);
