@@ -10,20 +10,20 @@
 
 
 struct ScheduleEntry {
-  int day;    // dni tygodnia czyli 0 => pon, 5=> pt
-  int hour;   // godzina rozpoczenia czyli 7 oznacza ze zaczyna sie o  a 15 ze o 15 
+  int day;    // dni tygodnia czyli 0 => pon, 4=> pt
+  int hour;   // godzina rozpoczenia czyli 7 oznacza ze zaczyna sie o 7 a 15 ze o 15 
   String text; // to co ma byc wpisane
 };
 
 ScheduleEntry schedule[] = {
   {0, 14, "konsultacje"},
   {1, 12, "konsultacje"},
-  {2, 3, "praca wlasna"},
+  {4, 11, "praca wlasna"},
   {3, 9, "praca wlasna"},
   {3, 10, "praca wlasna"}
 };
 
-void plansza1() {
+void screen1() {
 
   display.setFullWindow();
   display.firstPage();
@@ -49,7 +49,7 @@ void plansza1() {
 
 }
 
-void plansza2() {
+void screen2() {
 
   display.setTextSize(1);
   const int startHour = 7;  
@@ -113,7 +113,7 @@ void plansza2() {
   } while (display.nextPage());
 }
 
-void plansza3() {
+void screen3() {
   display.setFullWindow();
   display.firstPage();
 
@@ -167,19 +167,19 @@ void loop() {
 
       case '1':
 
-        plansza1();
+        screen1();
 
         break;
 
       case '2':
 
-        plansza2();
+        screen2();
 
         break;
 
       case '3':
 
-        plansza3();
+        screen3();
 
         break;
 
