@@ -5,7 +5,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-} from 'react-native';
+} from 'react-native';  
 import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
 
 const requestCameraPermission = async () => {
