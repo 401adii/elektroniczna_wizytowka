@@ -1,13 +1,20 @@
-import "../global.css"
-import { SafeAreaView } from "react-native";
-import PrototypeSendData from "./PrototypeSendData";
+import '../global.css'
+import PrototypeSendData from './PrototypeSendData';
+import PrototypeConnect from './PrototypeConnect';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 export default function App() {
   
+  const Stack = createNativeStackNavigator();
+
   return (
-    <SafeAreaView className="flex-1 justify-center items-center">
-        <PrototypeSendData/>
-    </SafeAreaView>
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen name='SendData' component={PrototypeSendData}/>
+        <Stack.Screen name='Connect' component={PrototypeConnect}/>
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 

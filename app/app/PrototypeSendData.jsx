@@ -1,21 +1,34 @@
 import { View, Text, TextInput, TouchableHighlight } from 'react-native'
-import React, {useState} from 'react'
+import React, {useState, useEffect} from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-const PrototypeSendData = () => {
+
+const PrototypeSendData = ({navigation}) => {
   const [text, setText] = useState('');
+  const [saveStatus, setSaveStatus] = useState(false);
+  
+  console.log(saveStatus);
 
   const handleSendData = async () => {
+    if(text === '')
+      return;
+    
     try{
       await AsyncStorage.setItem('data', text);
-      setText('data');
+      setSaveStatus(true);
+      setText('');
     }
     catch(error){
       console.error('Error while saving data to send:', error);
     }
   }
+
+  useEffect(() => {
+    if(saveStatus === true){
+      navigation.navigate('Connect');
+      setSaveStatus(false);
+    }
+  }, [saveStatus])
   
   return (
     <View className='flex-1 items-center justify-center p-2 gap-2'>
@@ -24,6 +37,10 @@ const PrototypeSendData = () => {
       <TouchableHighlight className='bg-orange-500 rounded p-2' underlayColor='lightsalmon'
                           onPress={() => handleSendData()}>
         <Text className='text-white'>SEND DATA</Text>
+      </TouchableHighlight>
+      <TouchableHighlight className='bg-orange-500 rounded p-2' underlayColor='lightsalmon'
+                          onPress={() => navigation.navigate('Connect')}>
+        <Text className='text-white'>NAVIGATE</Text>
       </TouchableHighlight>
     </View>
   )
