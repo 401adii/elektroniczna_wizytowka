@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, FlatList, ScrollView } from 'react-native'
+import { View, Text, TouchableOpacity, FlatList, ScrollView, PermissionsAndroid } from 'react-native'
 import React, {useState, useRef, useEffect} from 'react'
 import RNBluetoothClassic, { BluetoothDevice} from 'react-native-bluetooth-classic'
 
@@ -73,8 +73,26 @@ const Test = () => {
     }
   }
 
+  const requestBTPermission = async () => {
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+        {
+          title: 'Allow access to bluetooth',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        },
+      );
+    } catch (err) {
+      console.warn(err);
+    }
+  };
+
   return (
     <View className="flex-1 items-center justify-center w-1/4">
+      <TouchableOpacity className="bg-blue-400 p-2 rounded w-64" onPress={() => requestBTPermission()}>
+        <Text>REQUEST PERMISSIONS</Text>
+      </TouchableOpacity>
       <TouchableOpacity className="bg-blue-400 p-2 rounded" onPress={() => handleStuff()}>
           <Text className="text-center text-white">DO STUFF</Text>
       </TouchableOpacity>
@@ -94,7 +112,7 @@ const Test = () => {
           <Text className="text-gray-500 text-center">No paired devices found</Text>
         )}
       </ScrollView>
-      <TouchableOpacity className="bg-blue-400 p-2 rounded" onPress={() => sendDataToDevice(connectedDevice, "Dziala to?")}>
+      <TouchableOpacity className="bg-blue-400 p-2 rounded" onPress={() => sendDataToDevice(connectedDevice, "Dziala to?\n")}>
         <Text>SEND DATA</Text>
       </TouchableOpacity>
     </View>
