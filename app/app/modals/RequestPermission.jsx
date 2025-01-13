@@ -1,6 +1,6 @@
 import { View, Text, Modal, PermissionsAndroid } from 'react-native'
 import React, {useState} from 'react'
-import Button from '../components/Button'
+import PopUpWithButton from '../components/PopUpWithButton'
 
 const RequestPermission = ({onPermissionGranted}) => {
 
@@ -16,16 +16,7 @@ const RequestPermission = ({onPermissionGranted}) => {
     }
 
   return (
-		<Modal transparent={true}>
-			<View className='flex-1 items-center justify-center bg-[rgba(0,0,0,0.2)]'>
-				<View className='rounded items-center justify-center bg-white p-4 w-5/6 h-1/6' style={{elevation: 2}}>
-					<View className='flex-1 justify-start'>
-						<Text className='text-center'>App requires Bluetooth connection permission to work correctly.</Text>
-					</View>
-					<Button onPress={() => requestPermission()} text='REQUEST PERMISSION'/>
-				</View>
-			</View>
-		</Modal>
+	<PopUpWithButton text='App requires permission for Bluetooth connection' buttonText='request permission' onPress={() => requestPermission()}/>
 	)
 }
 
