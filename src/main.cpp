@@ -145,6 +145,7 @@ void screen1() {
   display.setFullWindow();
   display.firstPage();
 
+  do {
   display.fillScreen(GxEPD_WHITE);
   display.fillRect(0, 0, 800, 100, GxEPD_BLACK);
   display.setCursor(300, 60);
@@ -160,6 +161,7 @@ void screen1() {
   display.print("tel. 123 456 789");
   display.setCursor(140, 400);
   display.print("kamil.stawiarski@pg.edu.pl");
+  } while (display.nextPage());
 
   Serial.println("Print screen 1");
 }
@@ -185,6 +187,8 @@ void screen2() {
 
   display.setFullWindow();
   display.firstPage();
+
+  do{
 
   display.fillScreen(GxEPD_WHITE); 
 
@@ -223,7 +227,7 @@ void screen2() {
       display.print(entry.text);
     }
   }
-
+  } while (display.nextPage());
   Serial.println("Print screen 2");
 
 }
@@ -232,6 +236,7 @@ void screen3() {
   display.setFullWindow();
   display.firstPage();
 
+  do {
   display.fillScreen(GxEPD_WHITE);
 
 
@@ -245,7 +250,7 @@ void screen3() {
   display.setCursor(430, 400);
   display.setTextSize(2);
   display.print("Most wiedzy");
-
+  }while(display.nextPage());
   Serial.println("Print screen 3");
 
 }
