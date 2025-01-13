@@ -240,13 +240,13 @@ void screen3() {
   display.fillScreen(GxEPD_WHITE);
 
 
-  display.drawBitmap(50, 50,obrazek1, 300, 300, GxEPD_BLACK);
+  display.drawXBitmap(50, 50,obrazek1, 300, 300, GxEPD_BLACK);
   display.setCursor(110, 400);
   display.setTextSize(2);
   display.print("Kanal YT");
 
 
-  display.drawBitmap(400, 50,obrazek1, 300, 300, GxEPD_BLACK);
+  display.drawXBitmap(400, 50,obrazek1, 300, 300, GxEPD_BLACK);
   display.setCursor(430, 400);
   display.setTextSize(2);
   display.print("Most wiedzy");
