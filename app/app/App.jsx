@@ -10,7 +10,7 @@ export default function App() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator>
+      <Stack.Navigator animationTypeForReplace='push'>
         <Stack.Screen name='SendData' component={PrototypeSendData}/>
         <Stack.Screen name='Connect' component={PrototypeConnect}/>
       </Stack.Navigator>

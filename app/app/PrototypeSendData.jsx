@@ -6,8 +6,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const PrototypeSendData = ({navigation}) => {
   const [text, setText] = useState('');
   const [saveStatus, setSaveStatus] = useState(false);
-  
-  console.log(saveStatus);
 
   const handleSendData = async () => {
     if(text === '')
