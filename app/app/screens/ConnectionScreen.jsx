@@ -4,12 +4,13 @@ import RequestPermission from '../modals/RequestPermission';
 import RNBluetoothClassic, {BluetoothDevice} from 'react-native-bluetooth-classic'
 import EnableBluetooth from '../modals/EnableBluetooth';
 import DeviceListItem from '../components/DeviceListItem';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import ConnectingToDevice from '../modals/ConnectingToDevice';
 
 const ConnectionScreen = () => {
 
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [pairedDevices, setPairedDevices] = useState([]);
+  const [deviceToConnect, setDeviceToConnect] = useState(null);
 
   const checkPermission = async () => {
     try {
@@ -39,6 +40,10 @@ const ConnectionScreen = () => {
     }
   }
 
+  const handleConnection = (device) => {
+    setDeviceToConnect(device)
+  }
+
   useEffect(() =>{
     checkPermission();
     getPairedDevices();
@@ -56,6 +61,7 @@ const ConnectionScreen = () => {
     <ScrollView>
       <RequestPermission onPermissionGranted={() => handlePermissionGranted()} visible={!permissionGranted}/>
       <EnableBluetooth/>
+      <ConnectingToDevice device={deviceToConnect} visible={deviceToConnect === null ? false : true} onCancel={() => setDeviceToConnect(null)}/>
       {pairedDevices.length === 0 ? <Text>No devices found</Text>: null}
       <FlatList data={pairedDevices}
                 renderItem={({item}) => (

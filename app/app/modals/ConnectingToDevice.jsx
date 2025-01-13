@@ -1,11 +1,12 @@
-import { View, Text } from 'react-native'
-import React, {useState} from 'react'
+import React, {useState, useEffect} from 'react'
 import PopUpWithButton from '../components/PopUpWithButton'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
-const ConnectingToDevice = () => {
+const ConnectingToDevice = ({device, visible, onCancel}) => {
+    
     const [connectedDevice, setConnectedDevice] = useState(null);
 
-    const handleConnection = async (device) => {
+    const handleConnection = async () => {
         try {
           const connected = await device.connect();
           
@@ -28,13 +29,20 @@ const ConnectingToDevice = () => {
           console.error(error);
         }
     }
+
+    useEffect(() => {
+        if(visible)
+            handleConnection();
+    }, [visible])
     
-      useEffect(() => {
-        saveConnectedDevice();
-      }, [connectedDevice])
+    useEffect(() => {
+        if(connectedDevice)
+            saveConnectedDevice();
+
+    }, [connectedDevice])
 
     return (
-        <PopUpWithButton text='Connecting' buttonText='cancel'/>
+        <PopUpWithButton text='Connecting...' buttonText='cancel' visible={visible} onPress={onCancel}/>
     )
 }
 
