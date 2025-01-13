@@ -7,7 +7,7 @@
 #include "images.h"
 #include "elapsedMillis.h"
 
-#define PIN_ENABLE 2
+#define PIN_ENABLE 13
 
 #define DEVICE_NAME "ESP32-BT-Test"
 #define LED_BT_CONNECTING_BLINK_PERIOD_MS 500
