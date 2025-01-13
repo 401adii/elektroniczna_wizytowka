@@ -1,16 +1,18 @@
-import {ScrollView, Text, PermissionsAndroid, FlatList, ToastAndroid} from 'react-native'
+import {ScrollView, Text, PermissionsAndroid, FlatList, View} from 'react-native'
 import React, {useState, useEffect} from 'react'
 import RequestPermission from '../modals/RequestPermission';
 import RNBluetoothClassic, {BluetoothDevice} from 'react-native-bluetooth-classic'
 import EnableBluetooth from '../modals/EnableBluetooth';
 import DeviceListItem from '../components/DeviceListItem';
 import ConnectingToDevice from '../modals/ConnectingToDevice';
+import Button from '../components/Button';
 
-const ConnectionScreen = () => {
+const ConnectionScreen = ({navigation}) => {
 
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [pairedDevices, setPairedDevices] = useState([]);
   const [deviceToConnect, setDeviceToConnect] = useState(null);
+  const [connectingVisible, setConnectingVisible] = useState(false);
 
   const checkPermission = async () => {
     try {
@@ -40,17 +42,13 @@ const ConnectionScreen = () => {
     }
   }
 
-  const handleConnection = (device) => {
-    setDeviceToConnect(device)
-  }
-
   useEffect(() =>{
     checkPermission();
     getPairedDevices();
   }, [permissionGranted])
   
   useEffect(() => {
-    const subscription = RNBluetoothClassic.onStateChanged(() => {getPairedDevices()});
+    const subscription = RNBluetoothClassic.onStateChanged(() => getPairedDevices());
 
     return () => {
       subscription.remove(); 
@@ -61,11 +59,20 @@ const ConnectionScreen = () => {
     <ScrollView>
       <RequestPermission onPermissionGranted={() => handlePermissionGranted()} visible={!permissionGranted}/>
       <EnableBluetooth/>
-      <ConnectingToDevice device={deviceToConnect} visible={deviceToConnect === null ? false : true} onCancel={() => setDeviceToConnect(null)}/>
-      {pairedDevices.length === 0 ? <Text>No devices found</Text>: null}
+      <ConnectingToDevice device={deviceToConnect}
+                          visible={deviceToConnect === null ? false : true}
+                          onCancel={() => setDeviceToConnect(null)} 
+                          onConnected={() => setDeviceToConnect(null)} 
+                          onNotConnected={() => setDeviceToConnect(null)}/>
+      {pairedDevices.length === 0 ? 
+      <View className='flex-1 justify-center p-2 items-center gap-2'>
+        <Text className='text-center'> No paired devices foud</Text>
+        <Button text='open settings' onPress={() => RNBluetoothClassic.openBluetoothSettings()}></Button>
+        <Button text='refresh' onPress={() => navigation.navigate('ConnectionScreen')}></Button>
+      </View> : null}
       <FlatList data={pairedDevices}
                 renderItem={({item}) => (
-                  <DeviceListItem deviceName={item._nativeDevice?.name} deviceAdress={item._nativeDevice?.address} onPress={() => handleConnection(item)}/>
+                  <DeviceListItem deviceName={item._nativeDevice?.name} deviceAdress={item._nativeDevice?.address} onPress={() => setDeviceToConnect(item)}/>
                 )}
       />
     </ScrollView>
