@@ -6,7 +6,7 @@
 #include "images.h"
 
 
-#define PIN_ENABLE 2
+#define PIN_ENABLE 13
 
 
 struct ScheduleEntry {
@@ -148,7 +148,7 @@ void setup() {
 
   pinMode(PIN_ENABLE, OUTPUT);
   digitalWrite(PIN_ENABLE, HIGH);
-  display.init(115200, true, 2, false);
+  display.init(115200, true, 13, false);
   display.setRotation(0);
   display.setFont(&FreeMonoBold9pt7b);
   display.setTextColor(GxEPD_BLACK);
