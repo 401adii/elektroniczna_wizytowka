@@ -41,13 +41,17 @@ const ConnectionScreen = () => {
     getPairedDevices();
   }, [permissionGranted])
 
+
   return (
     <ScrollView>
-      {!permissionGranted ? <RequestPermission onPermissionGranted={() => handlePermissionGranted()}/> : null}
-      <EnableBluetooth />
-      <FlatList data={pairedDevices} renderItem={({item}) => (
-          <Text>Device</Text>
-      )}/>
+      <RequestPermission onPermissionGranted={() => handlePermissionGranted()} visible={!permissionGranted}/>
+      <EnableBluetooth/>
+      {pairedDevices.length === 0 ? <Text>No devices found</Text>: null}
+      <FlatList data={pairedDevices}
+                renderItem={({item}) => (
+                  <Text>Device</Text>
+                )}
+      />
     </ScrollView>
   )
 }

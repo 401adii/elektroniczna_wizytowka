@@ -2,7 +2,7 @@ import { View, Text, Modal, PermissionsAndroid } from 'react-native'
 import React, {useState} from 'react'
 import PopUpWithButton from '../components/PopUpWithButton'
 
-const RequestPermission = ({onPermissionGranted}) => {
+const RequestPermission = ({onPermissionGranted, visible}) => {
 
     const requestPermission = async () => {
 			try {
@@ -16,7 +16,7 @@ const RequestPermission = ({onPermissionGranted}) => {
     }
 
   return (
-	<PopUpWithButton text='App requires permission for Bluetooth connection' buttonText='request permission' onPress={() => requestPermission()}/>
+	<PopUpWithButton text='App requires permission for Bluetooth connection' buttonText='request permission' onPress={() => requestPermission()} visible={visible}/>
 	)
 }
 
