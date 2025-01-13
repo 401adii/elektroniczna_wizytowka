@@ -8,8 +8,8 @@ const EnableBluetooth = () => {
 	const [visible, setVisible] = useState(false);
 
 	const handleBtStateChanged = (state) => {
-		console.log(state?.enabled);
-		setVisible(state?.enabled)
+		const isVisible = !state?.enabled
+		setVisible(isVisible)
 	}
 
 	const handleOnPress = () => {
@@ -26,7 +26,7 @@ const EnableBluetooth = () => {
 	  }, []);
 
 	return (
-		<PopUpWithButton text='App requires enabling Bluetooth to continue' buttonText='enable bluetooth' onPress={() => handleOnPress()} visible={!visible}/>
+		<PopUpWithButton text='App requires enabling Bluetooth to continue' buttonText='enable bluetooth' onPress={() => handleOnPress()} visible={visible}/>
 	)
 }
 

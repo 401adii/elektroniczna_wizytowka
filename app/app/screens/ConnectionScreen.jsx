@@ -1,8 +1,9 @@
-import {ScrollView, Text, PermissionsAndroid, FlatList } from 'react-native'
+import {ScrollView, Text, PermissionsAndroid, FlatList, View, TouchableHighlight } from 'react-native'
 import React, {useState, useEffect} from 'react'
 import RequestPermission from '../modals/RequestPermission';
 import RNBluetoothClassic from 'react-native-bluetooth-classic'
 import EnableBluetooth from '../modals/EnableBluetooth';
+import DeviceListItem from '../components/DeviceListItem';
 
 const ConnectionScreen = () => {
 
@@ -33,6 +34,7 @@ const ConnectionScreen = () => {
     }
     catch(error) {
       console.error(error);
+      setPairedDevices([])
     }
   }
 
@@ -40,7 +42,14 @@ const ConnectionScreen = () => {
     checkPermission();
     getPairedDevices();
   }, [permissionGranted])
+  
+  useEffect(() => {
+    const subscription = RNBluetoothClassic.onStateChanged(() => {getPairedDevices()});
 
+    return () => {
+      subscription.remove(); 
+    };
+  }, []);
 
   return (
     <ScrollView>
@@ -48,8 +57,10 @@ const ConnectionScreen = () => {
       <EnableBluetooth/>
       {pairedDevices.length === 0 ? <Text>No devices found</Text>: null}
       <FlatList data={pairedDevices}
-                renderItem={({item}) => (
-                  <Text>Device</Text>
+                renderItem={({item}) => (<View>
+                  <DeviceListItem deviceName={item._nativeDevice?.name} deviceAdress={item._nativeDevice?.address}/>
+                  <View className='border border-gray-300 rounded'></View>
+                </View>
                 )}
       />
     </ScrollView>

@@ -1,4 +1,4 @@
-import { View, Text } from 'react-native'
+import { View, Text, TouchableNativeFeedback } from 'react-native'
 import React from 'react'
 import Button from './components/Button'
 import RNBluetoothClassic from 'react-native-bluetooth-classic'
@@ -11,7 +11,11 @@ const TestView = ({navigation}) => {
 
   return (
     <View className='flex-1 items-center justify-center'>
-      <Button text='CLICK ME' onPress={() => RNBluetoothClassic.openBluetoothSettings()}/>
+      <TouchableNativeFeedback>
+        <View>
+          <Text>halo</Text>
+        </View>
+      </TouchableNativeFeedback>
     </View>
   )
 }

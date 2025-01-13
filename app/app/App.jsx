@@ -13,7 +13,7 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator animationTypeForReplace='push' initialRouteName='ConnectionScreen'>
-        <Stack.Screen name='Test View' component={TestView}/>
+        <Stack.Screen name='test' component={TestView}/>
         <Stack.Screen name='ConnectionScreen' options={{title: 'Connect to a device'}} component={ConnectionScreen}/>
         <Stack.Screen name='Send Data' component={PrototypeSendData}/>
         <Stack.Screen name='Connect' component={PrototypeConnect}/>
