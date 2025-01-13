@@ -4,10 +4,28 @@
 #include <SPIFFS.h>
 #include "GxEPD2_display_selection_new_style.h"
 #include "images.h"
+#include <BluetoothSerial.h>
 
-
+#define DEVICE_NAME "ESP32-BT-Test"
+#define LED_BT_CONNECTING_BLINK_PERIOD_MS 500
+#define DEEP_SLEEP_TIME_US 10000000
+#define BT_TIME_TO_CONNECT_MS 3000
 #define PIN_ENABLE 13
 
+BluetoothSerial SerialBT;
+bool isConnected = false;
+char received;
+
+TaskHandle_t LEDBlinkConnecting_h = NULL;
+
+void onBTConnect();
+void onBTDisconnect();
+void keepBT(void* params);
+void readBT(void* params);
+void LEDBlinkConnecting(void* params);
+void screen1(void* params);
+void screen2(void* params);
+void screen3(void* params);
 
 struct ScheduleEntry {
   int day;    // dni tygodnia czyli 0 => pon, 4=> pt
@@ -23,8 +41,69 @@ ScheduleEntry schedule[] = {
   {3, 10, "praca wlasna"}
 };
 
-void screen1() {
 
+void setup() {
+
+  if (!SPIFFS.begin(true)) {
+    Serial.println("Nie udało się zainicjować SPIFFS");
+    return;
+  } else {
+    Serial.println("SPIFFS zainicjowany pomyślnie.");
+  }
+
+  pinMode(PIN_ENABLE, OUTPUT);
+  digitalWrite(PIN_ENABLE, HIGH);
+  display.init(115200, true, PIN_ENABLE, false);
+  display.setRotation(0);
+  display.setFont(&FreeMonoBold9pt7b);
+  display.setTextColor(GxEPD_BLACK);
+
+  Serial.begin(115200);
+
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, 0);
+
+    // Register event handlers
+    SerialBT.register_callback([](esp_spp_cb_event_t event, esp_spp_cb_param_t* param) {
+        if (event == ESP_SPP_SRV_OPEN_EVT) onBTConnect();
+        if (event == ESP_SPP_CLOSE_EVT) onBTDisconnect();
+    });
+
+    // Tasks
+    xTaskCreate(keepBT, "BT_keep_task", 4*1024, NULL, 1, NULL);
+    xTaskCreate(readBT, "BT_read_task", 2048, NULL, 1, NULL);
+    xTaskCreate(LEDBlinkConnecting, "LED_blink_connecting_task", 1024, NULL, 1, &LEDBlinkConnecting_h);
+}
+
+void loop() {
+  int input = received;
+
+  switch (input) {
+
+    case '1':
+      xTaskCreate(screen1, "screen1_task", 4*1024, NULL, 1, NULL);
+      input =-1;
+      break;
+
+    case '2':
+      xTaskCreate(screen2, "screen2_task", 4*1024, NULL, 1, NULL);
+      input =-1;
+      break;
+
+    case '3':
+      xTaskCreate(screen3, "screen3_task", 4*1024, NULL, 1, NULL);
+      input =-1;
+      break;
+
+    default:
+      input = -1;
+      break;
+  }
+
+  vTaskDelay(100 / portTICK_PERIOD_MS); 
+}
+
+void screen1(void* params) {
   display.setFullWindow();
   display.firstPage();
 
@@ -46,10 +125,13 @@ void screen1() {
     display.setCursor(140, 400);
     display.print("kamil.stawiarski@pg.edu.pl");
   } while (display.nextPage());
+  
+  Serial.println("Printed screen 1");
+  vTaskDelete(NULL);
 
 }
 
-void screen2() {
+void screen2(void* params) {
 
   display.setTextSize(1);
   const int startHour = 7;  
@@ -111,9 +193,12 @@ void screen2() {
     }
 
   } while (display.nextPage());
+
+  Serial.println("Printed screen 2");
+  vTaskDelete(NULL);
 }
 
-void screen3() {
+void screen3(void* params) {
   display.setFullWindow();
   display.firstPage();
 
@@ -133,67 +218,75 @@ void screen3() {
     display.print("Most wiedzy");
 
   } while (display.nextPage());
+
+  Serial.println("Printed screen 3");
+  vTaskDelete(NULL);
 }
 
-
-void setup() {
-
-
-  if (!SPIFFS.begin(true)) {
-    Serial.println("Nie udało się zainicjować SPIFFS");
-    return;
-  } else {
-    Serial.println("SPIFFS zainicjowany pomyślnie.");
+void onBTConnect()
+{
+  isConnected = true;
+  if(LEDBlinkConnecting_h != NULL)
+  {
+    vTaskSuspend(LEDBlinkConnecting_h);
+    digitalWrite(LED_BUILTIN, 1);
   }
-
-  pinMode(PIN_ENABLE, OUTPUT);
-  digitalWrite(PIN_ENABLE, HIGH);
-  display.init(115200, true, 13, false);
-  display.setRotation(0);
-  display.setFont(&FreeMonoBold9pt7b);
-  display.setTextColor(GxEPD_BLACK);
-
-  Serial.begin(115200);
-
+  
+  Serial.println("Bluetooth device connected");
 }
 
-void loop() {
+void onBTDisconnect()
+{
+  isConnected = false;
+  Serial.println("Bluetooth device disconnected");
+  if(LEDBlinkConnecting_h != NULL)
+    vTaskResume(LEDBlinkConnecting_h);
+}
 
-  if (Serial.available() > 0) {
-
-    char input = Serial.read();
-
-    switch (input) {
-
-      case '1':
-
-        screen1();
-
-        break;
-
-      case '2':
-
-        screen2();
-
-        break;
-
-      case '3':
-
-        screen3();
-
-        break;
-
-      default:
-
-        break;
+void keepBT(void* params)
+{
+  while(1)
+  {
+    if (!isConnected)
+    {
+      SerialBT.begin(DEVICE_NAME);
+      Serial.println("Waiting for BT connection...");
+      vTaskDelay(BT_TIME_TO_CONNECT_MS / portTICK_PERIOD_MS);
+      if(!isConnected)
+      {
+        Serial.println("zzzzz...");
+        esp_sleep_enable_timer_wakeup(DEEP_SLEEP_TIME_US);
+        esp_deep_sleep_start();
+      }
     }
-
-    delay(100); 
-
+    else
+    {
+      vTaskDelay(50 / portTICK_PERIOD_MS); // Small delay to prevent busy-waiting
+    }
   }
 
 }
 
+void readBT(void* params)
+{
+  while(1)
+  {
+    if (isConnected && SerialBT.available())
+    {
+      received = SerialBT.read();
+      Serial.write(received);
+    }
+    vTaskDelay(50 / portTICK_PERIOD_MS); // Small delay to prevent busy-waiting
+  }
+}
 
-
-
+void LEDBlinkConnecting(void* params)
+{
+  while(1)
+  {
+    digitalWrite(BUILTIN_LED, 1);
+    vTaskDelay(LED_BT_CONNECTING_BLINK_PERIOD_MS / portTICK_PERIOD_MS);
+    digitalWrite(BUILTIN_LED, 0);
+    vTaskDelay(LED_BT_CONNECTING_BLINK_PERIOD_MS / portTICK_PERIOD_MS);
+  }
+}
