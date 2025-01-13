@@ -7,8 +7,9 @@ const PrototypeConnect = () => {
 
   const [btEnabled, setBtEnabled] = useState(false);
   const [pairedDevices, setPairedDevices] = useState([]);
-  const [connectedDevice, setconnectedDevice] = useState(null);
+  const [connectedDevice, setConnectedDevice] = useState(null);
   const [dataToSend, setDataToSend] = useState(null);
+  const [count, setCount] = useState(0);
   
   const requestBluetoothConnectPermission = async () => {
     try{
@@ -74,7 +75,7 @@ const PrototypeConnect = () => {
       const connected = await device.connect();
       
       if(connected){
-        setconnectedDevice(device);
+        setConnectedDevice(device);
       }
     }
     catch(error){
@@ -112,7 +113,7 @@ const PrototypeConnect = () => {
       const disconnect = await connectedDevice.disconnect();
 
       if(disconnect !== null)
-        connectedDevice(null);
+        setConnectedDevice(null);
     }
     catch(error){
       console.error(error);
@@ -142,7 +143,12 @@ const PrototypeConnect = () => {
     handleWrite();
   },[dataToSend])
 
-
+  const callMethodNTimes = async (fn, n, interval, arg) => {
+    for (let i = 0; i < n; i++) {
+      await new Promise((resolve) => setTimeout(resolve, interval));
+      await fn(arg);
+    }
+  }
 
   return (
     <View className='flex-1 items-center justify-center mt-4'>
@@ -157,18 +163,26 @@ const PrototypeConnect = () => {
                           onPress={() => getPairedDevices()}>
         <Text className='text-white'>GET PAIRED DEVICES</Text>
       </TouchableHighlight>
-      { connectedDevice !== null ? <Text>Connection succesful, sending data...</Text>
+      { connectedDevice !== null ? 
+        <View>
+          <Text>Connection succesful, sending data...</Text>
+          <TouchableHighlight className='bg-orange-500 rounded p-2' underlayColor='lightsalmon'
+            onPress={() => handleDisconnect()}>
+            <Text className='text-white'>DISCONNECT</Text>
+          </TouchableHighlight>
+        </View>
         :
         <ScrollView>
         {pairedDevices.length === 0 ? <Text>No paired devices found</Text> : 
           <FlatList data={pairedDevices} renderItem={({item}) => (
             <TouchableHighlight className='bg-blue-400 rounded p-2 my-2' underlayColor='lightsalmon'
-            onPress={() => {handleConnection(item)}}>
+            onPress={() => {callMethodNTimes(handleConnection, 10, 1000, item)}}>
               <Text className='text-white'>{item._nativeDevice?.name}</Text>
             </TouchableHighlight>
           )}/>}
       </ScrollView>
       }
+      
     </View>
   )
 }
