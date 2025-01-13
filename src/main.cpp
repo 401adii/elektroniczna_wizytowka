@@ -104,6 +104,7 @@ void loop() {
 }
 
 void screen1(void* params) {
+  
   display.setFullWindow();
   display.firstPage();
 
@@ -125,7 +126,7 @@ void screen1(void* params) {
     display.setCursor(140, 400);
     display.print("kamil.stawiarski@pg.edu.pl");
   } while (display.nextPage());
-  
+
   Serial.println("Printed screen 1");
   vTaskDelete(NULL);
 
