@@ -1,9 +1,10 @@
-import {ScrollView, Text, PermissionsAndroid, FlatList, View, TouchableHighlight } from 'react-native'
+import {ScrollView, Text, PermissionsAndroid, FlatList, ToastAndroid} from 'react-native'
 import React, {useState, useEffect} from 'react'
 import RequestPermission from '../modals/RequestPermission';
-import RNBluetoothClassic from 'react-native-bluetooth-classic'
+import RNBluetoothClassic, {BluetoothDevice} from 'react-native-bluetooth-classic'
 import EnableBluetooth from '../modals/EnableBluetooth';
 import DeviceListItem from '../components/DeviceListItem';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ConnectionScreen = () => {
 
@@ -57,10 +58,8 @@ const ConnectionScreen = () => {
       <EnableBluetooth/>
       {pairedDevices.length === 0 ? <Text>No devices found</Text>: null}
       <FlatList data={pairedDevices}
-                renderItem={({item}) => (<View>
-                  <DeviceListItem deviceName={item._nativeDevice?.name} deviceAdress={item._nativeDevice?.address}/>
-                  <View className='border border-gray-300 rounded'></View>
-                </View>
+                renderItem={({item}) => (
+                  <DeviceListItem deviceName={item._nativeDevice?.name} deviceAdress={item._nativeDevice?.address} onPress={() => handleConnection(item)}/>
                 )}
       />
     </ScrollView>
