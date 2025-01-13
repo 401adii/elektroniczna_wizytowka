@@ -53,8 +53,6 @@ const PrototypeConnect = () => {
     }
   }
 
-
-
   const getPairedDevices = async () => {
     try {
       const devices = await RNBluetoothClassic.getBondedDevices();
