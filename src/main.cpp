@@ -3,6 +3,7 @@
 #include <FS.h>
 #include <SPIFFS.h>
 #include <BluetoothSerial.h>
+#include <Preferences.h>
 #include "GxEPD2_display_selection_new_style.h"
 #include "images.h"
 #include "elapsedMillis.h"
@@ -14,25 +15,35 @@
 #define DEEP_SLEEP_TIME_US 10000000
 #define BT_TIME_TO_CONNECT_MS 3000
 
+bool isConnected = false;
+bool dataUpdated = false;
+char received;
+int currentscreen = 1;
 
 BluetoothSerial SerialBT;
-bool isConnected = false;
-char received;
 elapsedMillis ledBlink;
 elapsedMillis connectWait;
 
+Preferences data;
+
+int input;
+
 struct ScheduleEntry {
+
   int day;    // dni tygodnia czyli 0 => pon, 4=> pt
   int hour;   // godzina rozpoczenia czyli 7 oznacza ze zaczyna sie o 7 a 15 ze o 15 
   String text; // to co ma byc wpisane
+
 };
 
 ScheduleEntry schedule[] = {
+
   {0, 14, "konsultacje"},
   {1, 12, "konsultacje"},
   {4, 11, "praca wlasna"},
   {3, 9, "praca wlasna"},
   {3, 10, "praca wlasna"}
+
 };
 
 void screen1();
@@ -40,15 +51,19 @@ void screen2();
 void screen3();
 void onBTConnect();
 void onBTDisconnect();
+void saveDataToFlash(const String& key, const String& value);
 
 void setup() {
 
-
   if (!SPIFFS.begin(true)) {
-    Serial.println("Nie udało się zainicjować SPIFFS");
+
+    Serial.println("SPIFFS initialization failed");
     return;
+
   } else {
-    Serial.println("SPIFFS zainicjowany pomyślnie.");
+
+    Serial.println("SPIFFS initialized correctly");
+
   }
 
   pinMode(PIN_ENABLE, OUTPUT);
@@ -65,80 +80,149 @@ void setup() {
 
   // Register event handlers
   SerialBT.register_callback([](esp_spp_cb_event_t event, esp_spp_cb_param_t* param) {
+
     if (event == ESP_SPP_SRV_OPEN_EVT) onBTConnect();
     if (event == ESP_SPP_CLOSE_EVT) onBTDisconnect();
+
   });
 
   SerialBT.begin(DEVICE_NAME);
-    Serial.println("Waiting for BT connection...");
+  Serial.println("Waiting for BT connection...");
+
 }
 
-void loop() 
-{
+void loop() {
 
-  if(isConnected)
-  {
+  if(isConnected) {
+
     digitalWrite(BUILTIN_LED, 1);
     
-    if (SerialBT.available())
-    {
-      received = SerialBT.read();
+    if (SerialBT.available()) {
+
+      String receivedData = SerialBT.readStringUntil('\n');
+
+      if ((receivedData[0] == '1'||receivedData[0] == '2'||receivedData[0] == '3')&& receivedData[1] != '.') {
+
+        input = receivedData[0];
+
+      }
+
+      Serial.println("Received data: " + receivedData);
+      int separatorIndex = receivedData.indexOf('.');
+
+      if (separatorIndex != -1) {
+
+        String key = receivedData.substring(0, separatorIndex);
+        Serial.println("Key: "+key);
+        String value = receivedData.substring(separatorIndex + 1);
+        Serial.println("Value: "+value);
+        saveDataToFlash(key, value);
+
+      } else {
+
+        Serial.println("Incorrect data format");
+
+      }
+      
       Serial.write(received);
+
     }
+
   }
 
-  if(!isConnected)
-  {
-    if(ledBlink > LED_BT_CONNECTING_BLINK_PERIOD_MS)
-    {
+  if(!isConnected) {
+
+    if(ledBlink > LED_BT_CONNECTING_BLINK_PERIOD_MS) {
+
       digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
       ledBlink = 0;
+
     }
 
-    if(connectWait > BT_TIME_TO_CONNECT_MS)
-    {
+    if(connectWait > BT_TIME_TO_CONNECT_MS) {
+
       Serial.println("zzzzz...");
       connectWait = 0;
       esp_sleep_enable_timer_wakeup(DEEP_SLEEP_TIME_US);
       esp_deep_sleep_start();
+
     }
 
   }
 
-  int input = received;
+  if (dataUpdated) {
+
+    switch (currentscreen) {
+
+      case 1:
+      screen1();
+      break;
+      case 2:
+      screen2();
+      break;
+      case 3:
+      screen3();
+      break;
+      default:
+      break;
+
+    }
+
+    dataUpdated  = false;
+
+  }
 
   switch (input) {
 
     case '1':
+      currentscreen = 1;
+      input = -1;
       screen1();
       break;
 
     case '2':
+      currentscreen = 2;
+      input = -1;
       screen2();
       break;
 
     case '3':
+      currentscreen = 3;
+      input = -1;
       screen3();
       break;
 
     default:
       input = -1;
       break;
+
   }
+
 }
 
-void onBTConnect()
-{
+void onBTConnect() {
+
   isConnected = true;
   Serial.println("Bluetooth device connected");
+  
 }
 
-void onBTDisconnect()
-{
+void onBTDisconnect() {
+
   isConnected = false;
   Serial.println("Bluetooth device disconnected");
+
 }
 
+void saveDataToFlash(const String& key, const String& value) { // zapis danych w formie klucz -> wartosc do flasha
+
+  data.begin("storage", false);  
+  data.putString(key.c_str(), value);
+  data.end(); 
+  Serial.println("[NVS] Saved data: " + key + " = " + value);
+  dataUpdated = true;
+
+}
 
 void screen1() {
 
@@ -146,24 +230,27 @@ void screen1() {
   display.firstPage();
 
   do {
+  data.begin("storage", true);
   display.fillScreen(GxEPD_WHITE);
   display.fillRect(0, 0, 800, 100, GxEPD_BLACK);
   display.setCursor(300, 60);
   display.setTextSize(2);
   display.setTextColor(GxEPD_WHITE);
-  display.print("POKOJ 456");
+  display.print(data.getString("1", "POKOJ 456"));
   display.setCursor(10, 200);
   display.setTextSize(3);
   display.setTextColor(GxEPD_BLACK);
-  display.print("DR INZ. KAMIL STAWIARSKI");
+  display.print(data.getString("2","DR INZ. KAMIL STAWIARSKI"));
   display.setTextSize(2);
   display.setCursor(230, 300);
-  display.print("tel. 123 456 789");
+  display.print(data.getString("3","tel. 123 456 789"));
   display.setCursor(140, 400);
-  display.print("kamil.stawiarski@pg.edu.pl");
+  display.print(data.getString("4","kamil.stawiarski@pg.edu.pl"));
+  data.end();
   } while (display.nextPage());
 
   Serial.println("Print screen 1");
+
 }
 
 void screen2() {
@@ -188,10 +275,9 @@ void screen2() {
   display.setFullWindow();
   display.firstPage();
 
-  do{
+  do {
 
   display.fillScreen(GxEPD_WHITE); 
-
   
   for (int i = 0; i < numDays; i++) {
     int x = gridXOffset + i * colWidth; 
@@ -199,7 +285,6 @@ void screen2() {
     display.setCursor(x + colWidth / 4, gridYOffset / 2); 
     display.print(daysOfWeek[i]);
   }
-
   
   for (int hour = startHour; hour < endHour; hour++) {
     int y = gridYOffset + (hour - startHour) * rowHeight;
@@ -212,45 +297,53 @@ void screen2() {
 
     
     for (int i = 0; i < numDays; i++) {
+
       int x = gridXOffset + i * colWidth; 
       display.drawRect(x, y, colWidth, rowHeight, GxEPD_BLACK); 
+
     }
 
   }
 
   for (const auto& entry : schedule) {
+
     if (entry.hour >= startHour && entry.hour < endHour && entry.day >= 0 && entry.day < numDays) {
+
       int x = gridXOffset + entry.day * colWidth + 5; 
       int y = gridYOffset + (entry.hour - startHour) * rowHeight + 20; 
 
       display.setCursor(x, y);
       display.print(entry.text);
+
     }
+
   }
   } while (display.nextPage());
+
   Serial.println("Print screen 2");
 
 }
 
 void screen3() {
+
   display.setFullWindow();
   display.firstPage();
 
   do {
-  display.fillScreen(GxEPD_WHITE);
 
+  display.fillScreen(GxEPD_WHITE);
 
   display.drawXBitmap(50, 50,obrazek1, 300, 300, GxEPD_BLACK);
   display.setCursor(110, 400);
   display.setTextSize(2);
   display.print("Kanal YT");
 
-
   display.drawXBitmap(400, 50,obrazek1, 300, 300, GxEPD_BLACK);
   display.setCursor(430, 400);
   display.setTextSize(2);
   display.print("Most wiedzy");
-  }while(display.nextPage());
+  } while(display.nextPage());
+
   Serial.println("Print screen 3");
 
 }
