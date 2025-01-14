@@ -21,16 +21,10 @@ const ConnectingToDevice = ({device, visible, onCancel, onConnected, onNotConnec
         }
         catch (error) {
             console.error(error);
-      
             setCount((c) => {
               const newCount = c + 1;
-              console.log(`Attempt ${newCount}`);
               if (newCount === attempts) {
-                ToastAndroid.showWithGravity(
-                  `Cannot connect to ${device._nativeDevice?.name}`,
-                  ToastAndroid.LONG,
-                  ToastAndroid.BOTTOM
-                );
+                ToastAndroid.showWithGravity(`Cannot connect to ${device._nativeDevice?.name}`, ToastAndroid.LONG, ToastAndroid.BOTTOM);
                 onCancel();
               }
               return newCount;
@@ -39,14 +33,14 @@ const ConnectingToDevice = ({device, visible, onCancel, onConnected, onNotConnec
     }
 
     const saveConnectedDevice = async () => {
-        try {
-          const deviceData = JSON.stringify(device)
-          await AsyncStorage.setItem('defaultDevice', deviceData)
-        }
-        catch(error) {
-          console.error(error);
-        }
-    }
+      try {
+        const deviceData = JSON.stringify(connectedDevice)
+        await AsyncStorage.setItem('defaultDevice', deviceData)
+      }
+      catch(error) {
+        console.error(error);
+      }
+  }
 
     const callMethodNTimes = async (fn, n, interval) => {
         for (let i = 0; i < n; i++) {
@@ -73,3 +67,6 @@ const ConnectingToDevice = ({device, visible, onCancel, onConnected, onNotConnec
 }
 
 export default ConnectingToDevice
+
+//to do:
+//find a way to cancel connection

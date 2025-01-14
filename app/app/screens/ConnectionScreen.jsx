@@ -12,7 +12,7 @@ const ConnectionScreen = ({navigation}) => {
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [pairedDevices, setPairedDevices] = useState([]);
   const [deviceToConnect, setDeviceToConnect] = useState(null);
-  const [connectingVisible, setConnectingVisible] = useState(false);
+  const [isActive, setIsActive] = useState(false);
 
   const checkPermission = async () => {
     try {
@@ -26,7 +26,6 @@ const ConnectionScreen = ({navigation}) => {
 
   const handlePermissionGranted = () => {
     setPermissionGranted(true);
-    handleBluetoothEnabled();
   }
   
   const getPairedDevices = async () => {
@@ -55,14 +54,19 @@ const ConnectionScreen = ({navigation}) => {
     };
   }, []);
 
+  useEffect(() =>{
+    if(!isActive)
+      setIsActive(true);
+  },[isActive])
+
   return (
     <ScrollView>
       <RequestPermission onPermissionGranted={() => handlePermissionGranted()} visible={!permissionGranted}/>
-      <EnableBluetooth/>
+      {permissionGranted && isActive ? <EnableBluetooth onEnabled={() => {}}/> : null}
       <ConnectingToDevice device={deviceToConnect}
                           visible={deviceToConnect === null ? false : true}
                           onCancel={() => setDeviceToConnect(null)} 
-                          onConnected={() => setDeviceToConnect(null)} 
+                          onConnected={() => {setDeviceToConnect(null); setIsActive(false); navigation.navigate('ChoiceScreen');}} 
                           onNotConnected={() => setDeviceToConnect(null)}/>
       {pairedDevices.length === 0 ? 
       <View className='flex-1 justify-center p-2 items-center gap-2'>
