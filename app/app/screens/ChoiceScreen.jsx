@@ -68,7 +68,7 @@ const ChoiceScreen = ({navigation}) => {
       connect();
     }
   }, [deviceObject])
-  console.log(readyToSend);
+
   return (
     <View className='flex-1 items-center justify-center p-4 gap-4'>
       <Button onPress={() => setReadyToSend(true)} text='1'/>

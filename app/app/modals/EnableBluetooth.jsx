@@ -1,9 +1,9 @@
-import { View, Text, Modal } from 'react-native'
+import { PermissionsAndroid } from 'react-native'
 import React, {useEffect, useState} from 'react'
 import RNBluetoothClassic from 'react-native-bluetooth-classic'
 import PopUpWithButton from '../components/PopUpWithButton'
 
-const EnableBluetooth = ({onEnabled}) => {
+const EnableBluetooth = ({onEnabled, overrideVisible}) => {
 
 	const [visible, setVisible] = useState(true);
 
@@ -22,12 +22,8 @@ const EnableBluetooth = ({onEnabled}) => {
 		}
 	}
 
-	const handleOnPress = () => {
-		RNBluetoothClassic.requestBluetoothEnabled();
-	}
-
 	useEffect(() =>{
-		checkIsEnabled()
+		checkIsEnabled();
 	}, [])
 	
 	useEffect(() => {
@@ -45,7 +41,10 @@ const EnableBluetooth = ({onEnabled}) => {
 	},[visible])
 
 	return (
-		<PopUpWithButton text='App requires enabling Bluetooth to continue' buttonText='enable bluetooth' onPress={() => handleOnPress()} visible={visible}/>
+		<PopUpWithButton text='App requires enabling Bluetooth to continue' 
+		buttonText='enable bluetooth' 
+		onPress={() => RNBluetoothClassic.requestBluetoothEnabled()} 
+		visible={overrideVisible !== true || null ? overrideVisible : visible}/>
 	)
 }
 

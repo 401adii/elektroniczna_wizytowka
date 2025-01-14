@@ -12,7 +12,6 @@ const ConnectionScreen = ({navigation}) => {
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [pairedDevices, setPairedDevices] = useState([]);
   const [deviceToConnect, setDeviceToConnect] = useState(null);
-  const [isActive, setIsActive] = useState(false);
 
   const checkPermission = async () => {
     try {
@@ -24,10 +23,6 @@ const ConnectionScreen = ({navigation}) => {
     }
   }
 
-  const handlePermissionGranted = () => {
-    setPermissionGranted(true);
-  }
-  
   const getPairedDevices = async () => {
     try {
       const devices = await RNBluetoothClassic.getBondedDevices();
@@ -53,20 +48,15 @@ const ConnectionScreen = ({navigation}) => {
       subscription.remove(); 
     };
   }, []);
-
-  useEffect(() =>{
-    if(!isActive)
-      setIsActive(true);
-  },[isActive])
-
+  
   return (
     <ScrollView>
-      <RequestPermission onPermissionGranted={() => handlePermissionGranted()} visible={!permissionGranted}/>
-      {permissionGranted && isActive ? <EnableBluetooth onEnabled={() => {}}/> : null}
+      <EnableBluetooth onEnabled={() => {}} overrideVisible={navigation.isFocused()}/>
+      <RequestPermission onPermissionGranted={() => setPermissionGranted(true)} visible={!permissionGranted}/>
       <ConnectingToDevice device={deviceToConnect}
                           visible={deviceToConnect === null ? false : true}
                           onCancel={() => setDeviceToConnect(null)} 
-                          onConnected={() => {setDeviceToConnect(null); setIsActive(false); navigation.navigate('ChoiceScreen');}} 
+                          onConnected={() => {setDeviceToConnect(null); navigation.navigate('ChoiceScreen');}} 
                           onNotConnected={() => setDeviceToConnect(null)}/>
       {pairedDevices.length === 0 ? 
       <View className='flex-1 justify-center p-2 items-center gap-2'>
