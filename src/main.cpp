@@ -113,9 +113,7 @@ void loop() {
       if (separatorIndex != -1) {
 
         String key = receivedData.substring(0, separatorIndex);
-        Serial.println("Key: "+key);
         String value = receivedData.substring(separatorIndex + 1);
-        Serial.println("Value: "+value);
         saveDataToFlash(key, value);
 
       } else {
@@ -230,23 +228,51 @@ void screen1() {
   display.firstPage();
 
   do {
+
   data.begin("storage", true);
   display.fillScreen(GxEPD_WHITE);
   display.fillRect(0, 0, 800, 100, GxEPD_BLACK);
-  display.setCursor(300, 60);
+  
+  String room = data.getString("1", "POKOJ 456");
+  int16_t x1, y1;
+  uint16_t textWidth1, textHeight1;
   display.setTextSize(2);
+  display.getTextBounds(room, 0, 0, &x1, &y1, &textWidth1, &textHeight1);
+  int centerX = (display.width() - textWidth1) / 2;
+  display.setCursor(centerX, 60);
   display.setTextColor(GxEPD_WHITE);
-  display.print(data.getString("1", "POKOJ 456"));
-  display.setCursor(10, 200);
+  display.print(room);
+
+  String name = data.getString("2","DR INZ. KAMIL STAWIARSKI");
+  int16_t x2, y2;
+  uint16_t textWidth2, textHeight2;
   display.setTextSize(3);
+  display.getTextBounds(name, 0, 0, &x2, &y2, &textWidth2, &textHeight2);
+  int centerX2 = (display.width() - textWidth2) / 2;
+  display.setCursor(centerX2, 200);
   display.setTextColor(GxEPD_BLACK);
-  display.print(data.getString("2","DR INZ. KAMIL STAWIARSKI"));
+  display.print(name);
+
+  String tel = data.getString("3","tel. 123 456 789");
+  int16_t x3, y3;
+  uint16_t textWidth3, textHeight3;
   display.setTextSize(2);
-  display.setCursor(230, 300);
-  display.print(data.getString("3","tel. 123 456 789"));
-  display.setCursor(140, 400);
-  display.print(data.getString("4","kamil.stawiarski@pg.edu.pl"));
+  display.getTextBounds(tel, 0, 0, &x3, &y3, &textWidth3, &textHeight3);
+  int centerX3 = (display.width() - textWidth3) / 2;
+  display.setCursor(centerX3, 300);
+  display.print(tel);
+
+  String mail = data.getString("4","kamil.stawiarski@pg.edu.pl");
+  int16_t x4, y4;
+  uint16_t textWidth4, textHeight4;
+  display.setTextSize(2);
+  display.getTextBounds(mail, 0, 0, &x4, &y4, &textWidth4, &textHeight4);
+  int centerX4 = (display.width() - textWidth4) / 2;
+  display.setCursor(centerX4, 400);
+  display.print(mail);
+
   data.end();
+
   } while (display.nextPage());
 
   Serial.println("Print screen 1");
