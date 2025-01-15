@@ -18,13 +18,13 @@
 bool isConnected = false;
 bool dataUpdated = false;
 char received;
-int currentscreen = 1;
+int currentScreen = 1;
 
 BluetoothSerial SerialBT;
 elapsedMillis ledBlink;
 elapsedMillis connectWait;
 
-Preferences data;
+Preferences Data;
 
 int input;
 
@@ -46,12 +46,14 @@ ScheduleEntry schedule[] = {
 
 };
 
-void screen1();
-void screen2();
-void screen3();
+void drawScreen1();
+void drawScreen2();
+void drawScreen3();
 void onBTConnect();
 void onBTDisconnect();
 void saveDataToFlash(const String& key, const String& value);
+void blinkLED();
+void startDeepSleep();
 
 void setup() {
 
@@ -132,62 +134,37 @@ void loop() {
 
     if(ledBlink > LED_BT_CONNECTING_BLINK_PERIOD_MS) {
 
-      digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
-      ledBlink = 0;
-
+      blinkLED();
     }
 
     if(connectWait > BT_TIME_TO_CONNECT_MS) {
 
-      Serial.println("zzzzz...");
-      connectWait = 0;
-      esp_sleep_enable_timer_wakeup(DEEP_SLEEP_TIME_US);
-      esp_deep_sleep_start();
-
+      startDeepSleep();
     }
 
   }
 
   if (dataUpdated) {
 
-    switch (currentscreen) {
-
-      case 1:
-      screen1();
-      break;
-      case 2:
-      screen2();
-      break;
-      case 3:
-      screen3();
-      break;
-      default:
-      break;
-
-    }
-
+    input = currentScreen;
     dataUpdated  = false;
-
   }
 
   switch (input) {
 
     case '1':
-      currentscreen = 1;
       input = -1;
-      screen1();
+      drawScreen1();
       break;
 
     case '2':
-      currentscreen = 2;
       input = -1;
-      screen2();
+      drawScreen2();
       break;
 
     case '3':
-      currentscreen = 3;
       input = -1;
-      screen3();
+      drawScreen3();
       break;
 
     default:
@@ -214,26 +191,26 @@ void onBTDisconnect() {
 
 void saveDataToFlash(const String& key, const String& value) { // zapis danych w formie klucz -> wartosc do flasha
 
-  data.begin("storage", false);  
-  data.putString(key.c_str(), value);
-  data.end(); 
+  Data.begin("storage", false);  
+  Data.putString(key.c_str(), value);
+  Data.end(); 
   Serial.println("[NVS] Saved data: " + key + " = " + value);
   dataUpdated = true;
 
 }
 
-void screen1() {
+void drawScreen1() {
 
   display.setFullWindow();
   display.firstPage();
 
   do {
 
-  data.begin("storage", true);
+  Data.begin("storage", true);
   display.fillScreen(GxEPD_WHITE);
   display.fillRect(0, 0, 800, 100, GxEPD_BLACK);
   
-  String room = data.getString("1", "POKOJ 456");
+  String room = Data.getString("1", "POKOJ 456");
   int16_t x1, y1;
   uint16_t textWidth1, textHeight1;
   display.setTextSize(2);
@@ -243,7 +220,7 @@ void screen1() {
   display.setTextColor(GxEPD_WHITE);
   display.print(room);
 
-  String name = data.getString("2","DR INZ. KAMIL STAWIARSKI");
+  String name = Data.getString("2","DR INZ. KAMIL STAWIARSKI");
   int16_t x2, y2;
   uint16_t textWidth2, textHeight2;
   display.setTextSize(3);
@@ -253,7 +230,7 @@ void screen1() {
   display.setTextColor(GxEPD_BLACK);
   display.print(name);
 
-  String tel = data.getString("3","tel. 123 456 789");
+  String tel = Data.getString("3","tel. 123 456 789");
   int16_t x3, y3;
   uint16_t textWidth3, textHeight3;
   display.setTextSize(2);
@@ -262,7 +239,7 @@ void screen1() {
   display.setCursor(centerX3, 300);
   display.print(tel);
 
-  String mail = data.getString("4","kamil.stawiarski@pg.edu.pl");
+  String mail = Data.getString("4","kamil.stawiarski@pg.edu.pl");
   int16_t x4, y4;
   uint16_t textWidth4, textHeight4;
   display.setTextSize(2);
@@ -271,15 +248,16 @@ void screen1() {
   display.setCursor(centerX4, 400);
   display.print(mail);
 
-  data.end();
+  Data.end();
 
   } while (display.nextPage());
 
+  currentScreen = 1;
   Serial.println("Print screen 1");
 
 }
 
-void screen2() {
+void drawScreen2() {
 
   display.setTextSize(1);
   const int startHour = 7;  
@@ -346,11 +324,12 @@ void screen2() {
   }
   } while (display.nextPage());
 
+  currentScreen = 2;
   Serial.println("Print screen 2");
 
 }
 
-void screen3() {
+void drawScreen3() {
 
   display.setFullWindow();
   display.firstPage();
@@ -370,6 +349,21 @@ void screen3() {
   display.print("Most wiedzy");
   } while(display.nextPage());
 
+  currentScreen = 3;
   Serial.println("Print screen 3");
 
+}
+
+void blinkLED()
+{
+  digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
+  ledBlink = 0;
+}
+
+void startDeepSleep(){
+
+  Serial.println("zzzzz...");
+  connectWait = 0;
+  esp_sleep_enable_timer_wakeup(DEEP_SLEEP_TIME_US);
+  esp_deep_sleep_start();
 }
