@@ -47,7 +47,7 @@ const EnableBluetooth = ({onEnabled = () => {}}) => {
 		if(btEnabled !== null)
 			setVisible(!btEnabled);
 		if(btEnabled === true)
-				onEnabled();
+			onEnabled();
 	}, [btEnabled])
 
 	return (
