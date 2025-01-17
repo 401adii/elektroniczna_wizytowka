@@ -1,50 +1,60 @@
-import { PermissionsAndroid } from 'react-native'
 import React, {useEffect, useState} from 'react'
 import RNBluetoothClassic from 'react-native-bluetooth-classic'
 import PopUpWithButton from '../components/PopUpWithButton'
 
-const EnableBluetooth = ({onEnabled, overrideVisible}) => {
+const EnableBluetooth = ({onEnabled}) => {
 
-	const [visible, setVisible] = useState(true);
-
-	const handleBtStateChanged = (state) => {
-		const isVisible = !state?.enabled
-		setVisible(isVisible)
-	}
-
-	const checkIsEnabled = async () => {
+	const [btEnabled, setBtEnabled] = useState(null);
+	const [visible, setVisible] = useState(false);
+	
+	const checkBt = async () => {
 		try{
 			const enabled = await RNBluetoothClassic.isBluetoothEnabled();
-			setVisible(!enabled);
+			if(enabled !== null)
+				setBtEnabled(enabled);
 		}
 		catch(error){
-			console.error(error);
+			console.error('Error in EnableBluetooth component, checkBt()', error);
+		}
+	}
+
+	const handleEnableBt = async () => {
+		try{
+			await RNBluetoothClassic.requestBluetoothEnabled();			
+			checkBt();
+		}
+		catch(error){
+			console.error('Error in EnableBluetooth component, handleEnableBt()', error);
 		}
 	}
 
 	useEffect(() =>{
-		checkIsEnabled();
-	}, [])
-	
-	useEffect(() => {
-		const subscription = RNBluetoothClassic.onStateChanged((state) => handleBtStateChanged(state)
-		);
-	
-		return () => {
-		  subscription.remove();
+		checkBt();
+
+		const handleOnBtEnabled = (event) =>{
+			checkBt();
 		};
-	  }, []);
+
+		const subscription = RNBluetoothClassic.onStateChanged(handleOnBtEnabled);
+		
+		return () => {
+			subscription.remove();
+		}
+
+	},[])
 
 	useEffect(() => {
-		if(!visible)
-			onEnabled();
-	},[visible])
+		if(btEnabled !== null)
+			setVisible(!btEnabled);
+		if(btEnabled === true)
+				onEnabled();
+	}, [btEnabled])
 
 	return (
 		<PopUpWithButton text='App requires enabling Bluetooth to continue' 
 		buttonText='enable bluetooth' 
-		onPress={() => RNBluetoothClassic.requestBluetoothEnabled()} 
-		visible={overrideVisible !== true || null ? overrideVisible : visible}/>
+		onPress={() => handleEnableBt()} 
+		visible={visible}/>
 	)
 }
 

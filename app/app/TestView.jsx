@@ -1,21 +1,25 @@
-import { View, Text, TouchableNativeFeedback } from 'react-native'
-import React from 'react'
+import { View } from 'react-native'
+import React, {useState} from 'react'
+import EnableBluetooth from './modals/EnableBluetooth'
 import Button from './components/Button'
-import RNBluetoothClassic from 'react-native-bluetooth-classic'
 
 const TestView = ({navigation}) => {
 
-  const buttonTest = () => {
-    navigation.navigate('Send Data');
+  const [trigger, setTrigger] = useState(false);
+  
+  const handleTrigger = () => {
+    setTrigger(true);
   }
 
+  const handleOnEnabled = () => {
+    setTrigger(false);
+    navigation.navigate('test2');
+  }
+  
   return (
     <View className='flex-1 items-center justify-center'>
-      <TouchableNativeFeedback>
-        <View>
-          <Text>halo</Text>
-        </View>
-      </TouchableNativeFeedback>
+      {trigger ? <EnableBluetooth onEnabled={() => handleOnEnabled()}/> : null}
+      <Button text='trigger' onPress={() => handleTrigger()}/>
     </View>
   )
 }
