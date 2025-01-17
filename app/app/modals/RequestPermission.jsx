@@ -2,7 +2,7 @@ import {PermissionsAndroid } from 'react-native'
 import React, {useState, useEffect} from 'react'
 import PopUpWithButton from '../components/PopUpWithButton'
 
-const RequestPermission = ({onPermissionGranted}) => {
+const RequestPermission = () => {
 
 	const [visible, setVisible] = useState(false);
 	const [granted, setGranted] = useState(null);
@@ -10,8 +10,9 @@ const RequestPermission = ({onPermissionGranted}) => {
 	const checkPermissions = async () => {
 		try{
 			const permission = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT);
-			if(permission !== null)
+			if(permission !== null){
 				setGranted(permission);
+			}
 		}
 		catch(error){
 			console.error('Error in RequestPermission, checkPermission()', error);
@@ -21,9 +22,10 @@ const RequestPermission = ({onPermissionGranted}) => {
     const requestPermission = async () => {
 		try {
 			const permission = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT);
-			console.log(permission)
-			if(permission === true)
-				onPermissionGranted();
+			console.log(permission);
+			if(permission === PermissionsAndroid.RESULTS.GRANTED){
+				setGranted(true);
+			}
 		}
 		catch (error){
 			console.error('Error in RequestPermission, requestPermission()', error);
@@ -35,10 +37,9 @@ const RequestPermission = ({onPermissionGranted}) => {
 	}, [])
 
 	useEffect(() => {
-		if(granted !== null)
+		if(granted !== null){
 			setVisible(!granted)
-		if(granted === true)
-			onPermissionGranted();
+		}
 	},[granted])
 
   return (

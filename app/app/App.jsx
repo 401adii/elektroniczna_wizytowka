@@ -32,10 +32,10 @@ export default function App() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator animationTypeForReplace='push' initialRouteName='test'>
+      <Stack.Navigator animationTypeForReplace='push' initialRouteName='ConnectionScreen'>
         <Stack.Screen name='test' component={TestView}/>
-        {/* <Stack.Screen name='ConnectionScreen' options={{title: 'Connect to a device'}} component={ConnectionScreen}/>
-        <Stack.Screen name='ChoiceScreen' options={{title: 'Choose screens'}} component={ChoiceScreen}/> */}
+        <Stack.Screen name='ConnectionScreen' options={{title: 'Connect to a device'}} component={ConnectionScreen}/>
+        <Stack.Screen name='ChoiceScreen' options={{title: 'Choose screens'}} component={ChoiceScreen}/>
       </Stack.Navigator>
     </NavigationContainer>
   );

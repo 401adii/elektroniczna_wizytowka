@@ -9,50 +9,15 @@ import Button from '../components/Button';
 
 const ConnectionScreen = ({navigation}) => {
 
-  const [permissionGranted, setPermissionGranted] = useState(false);
   const [pairedDevices, setPairedDevices] = useState([]);
   const [deviceToConnect, setDeviceToConnect] = useState(null);
 
-  const checkPermission = async () => {
-    try {
-      const granted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT);
-      setPermissionGranted(granted);
-    }
-    catch(error) {
-      console.error(error);
-    }
-  }
 
-  const getPairedDevices = async () => {
-    try {
-      const devices = await RNBluetoothClassic.getBondedDevices();
-      
-      if(devices !== null)
-        setPairedDevices(devices);
-    }
-    catch(error) {
-      console.error(error);
-      setPairedDevices([])
-    }
-  }
-
-  useEffect(() =>{
-    checkPermission();
-    getPairedDevices();
-  }, [permissionGranted])
-  
-  useEffect(() => {
-    const subscription = RNBluetoothClassic.onStateChanged(() => getPairedDevices());
-
-    return () => {
-      subscription.remove(); 
-    };
-  }, []);
   
   return (
     <ScrollView>
-      <EnableBluetooth onEnabled={() => {}} overrideVisible={navigation.isFocused()}/>
-      <RequestPermission onPermissionGranted={() => setPermissionGranted(true)} visible={!permissionGranted}/>
+      <EnableBluetooth/>
+      <RequestPermission/>
       <ConnectingToDevice device={deviceToConnect}
                           visible={deviceToConnect === null ? false : true}
                           onCancel={() => setDeviceToConnect(null)} 

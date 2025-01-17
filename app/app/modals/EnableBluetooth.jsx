@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react'
 import RNBluetoothClassic from 'react-native-bluetooth-classic'
 import PopUpWithButton from '../components/PopUpWithButton'
 
-const EnableBluetooth = ({onEnabled}) => {
+const EnableBluetooth = ({onEnabled = () => {}}) => {
 
 	const [btEnabled, setBtEnabled] = useState(null);
 	const [visible, setVisible] = useState(false);

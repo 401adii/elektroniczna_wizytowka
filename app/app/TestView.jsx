@@ -18,7 +18,7 @@ const TestView = ({navigation}) => {
   
   return (
     <View className='flex-1 items-center justify-center'>
-      {trigger ? <RequestPermission onPermissionGranted={() => handleOnEnabled()}/> : null}
+      {trigger ? <RequestPermission onGranted={() => handleOnEnabled()}/> : null}
       <Button text='trigger' onPress={() => handleTrigger()}/>
     </View>
   )
