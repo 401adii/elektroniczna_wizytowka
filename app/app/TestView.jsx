@@ -1,6 +1,7 @@
 import { View } from 'react-native'
 import React, {useState} from 'react'
 import EnableBluetooth from './modals/EnableBluetooth'
+import RequestPermission from './modals/RequestPermission'
 import Button from './components/Button'
 
 const TestView = ({navigation}) => {
@@ -13,12 +14,11 @@ const TestView = ({navigation}) => {
 
   const handleOnEnabled = () => {
     setTrigger(false);
-    navigation.navigate('test2');
   }
   
   return (
     <View className='flex-1 items-center justify-center'>
-      {trigger ? <EnableBluetooth onEnabled={() => handleOnEnabled()}/> : null}
+      {trigger ? <RequestPermission onPermissionGranted={() => handleOnEnabled()}/> : null}
       <Button text='trigger' onPress={() => handleTrigger()}/>
     </View>
   )
