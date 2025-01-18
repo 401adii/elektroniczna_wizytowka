@@ -75,7 +75,7 @@ const ChoiceScreen = ({navigation}) => {
       <Button onPress={() => handleWrite('2')} text='2'/>
       <Button onPress={() => handleWrite('3')} text='3'/>
       <Button onPress={() => getDevice()} text='connect'/>
-      <Button onPress={() => navigation.navigate('ConnectionScreen')} text='change device'/>
+      <Button onPress={() => navigation.goBack()} text='change device'/>
       {readyToSend ? <EnableBluetooth onEnabled={() => console.log('enabled')}/> : null }
     </View>
   )

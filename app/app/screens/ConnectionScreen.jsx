@@ -6,8 +6,8 @@ import EnableBluetooth from '../modals/EnableBluetooth';
 import DeviceListItem from '../components/DeviceListItem';
 import ConnectingToDevice from '../modals/ConnectingToDevice';
 import Button from '../components/Button';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ConnectionScreen = ({navigation}) => {
 
@@ -15,6 +15,18 @@ const ConnectionScreen = ({navigation}) => {
   const [bondedDevices, setBondedDevices] = useState([]);
   const [deviceToConnect, setDeviceToConnect] = useState(null);
   const [focusFlag, setFocusFlag] = useState(true);
+
+  const checkStorage = async () => {
+    try {
+      const device = AsyncStorage.getItem('defaulDevice');
+      if(device !== null)
+        navigation.navigate('ChoiceScreen');
+    }
+    catch(error) {
+      console.error('Connection screen -> checkStorage(): ', error);
+    }
+
+  }
 
   const getDevices = async () => {
     try {
@@ -27,42 +39,26 @@ const ConnectionScreen = ({navigation}) => {
     }
   }
 
-  const connectToDevice = async () => {
-    try {
-      const connected = await deviceToConnect.connect();
-      if(connected === true){
-        saveDevice();
-      }
-    }
-    catch(error) {
-      console.error('Connection screen -> connectToDevice(): ', error);
-    }
-  }
-
-  const saveDevice = async () => {
-    try {
-      const jsonValue = JSON.stringify(deviceToConnect);
-      await AsyncStorage.setItem('defaultDevice', jsonValue);
-    }
-    catch(error) {
-      console.error('Connection screen -> saveDevice(): ', error);
-    }
+  const handleOnConnected = () => {
+    setDeviceToConnect(null);
+    navigation.navigate('ChoiceScreen')
   }
 
   useEffect(() => {
-    if(btEnabled === true)
+    checkStorage();
+  }, [])
+
+  useEffect(() => {
+    if(btEnabled === true){
+      console.log('test');
       getDevices();
+    }
   },[btEnabled])
-
-  useEffect(() => {
-    if(deviceToConnect !== null)
-      connectToDevice();
-  }, [deviceToConnect])
 
   useFocusEffect( 
     useCallback(() => {
       setFocusFlag(true);
-      console.log('hello');
+      getDevices();
       return () => {
         setFocusFlag(false);
         setBondedDevices([]);
@@ -74,16 +70,13 @@ const ConnectionScreen = ({navigation}) => {
     <ScrollView>
       {focusFlag ? <EnableBluetooth onEnabled={() => setBtEnabled(true)}/> : null}
       <RequestPermission/>
-      <ConnectingToDevice device={deviceToConnect}
-                          visible={deviceToConnect === null ? false : true}
-                          onCancel={() => setDeviceToConnect(null)} 
-                          onConnected={() => {setDeviceToConnect(null); navigation.navigate('ChoiceScreen');}} 
-                          onNotConnected={() => setDeviceToConnect(null)}/>
+      <ConnectingToDevice device={deviceToConnect} 
+                          onConnected={() => handleOnConnected()}
+                          onCancel={() => setDeviceToConnect(null)}/>
       {bondedDevices.length === 0 ? 
       <View className='flex-1 justify-center p-2 items-center gap-2'>
         <Text className='text-center'> No paired devices foud</Text>
         <Button text='open settings' onPress={() => RNBluetoothClassic.openBluetoothSettings()}></Button>
-        <Button text='refresh' onPress={() => navigation.navigate('ConnectionScreen')}></Button>
       </View> : null}
       <FlatList data={bondedDevices}
                 renderItem={({item}) => (

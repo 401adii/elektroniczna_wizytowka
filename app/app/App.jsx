@@ -12,27 +12,9 @@ export default function App() {
   
   const Stack = createNativeStackNavigator();
 
-  const [initialScreen, setInitialScreen] = useState(null);
-
-  const checkDefaultDevice = async () => {
-    const defaultDevice = await AsyncStorage.getItem('defaultDevice');
-    if(defaultDevice === null)
-      setInitialScreen('ConnectionScreen');
-    else
-      setInitialScreen('ChoiceScreen');
-  }
-
-  useEffect(() => {
-    checkDefaultDevice();
-  }, [])
-
-  if (initialScreen === null) {
-    return <Text className='align-center text-center'>Loading...</Text>;
-  }
-
   return (
     <NavigationContainer>
-      <Stack.Navigator animationTypeForReplace='push' initialRouteName={initialScreen}>
+      <Stack.Navigator animationTypeForReplace='push' initialRouteName='ConnectionScreen'>
         <Stack.Screen name='test' component={TestView}/>
         <Stack.Screen name='ConnectionScreen' options={{title: 'Connect to a device'}} component={ConnectionScreen}/>
         <Stack.Screen name='ChoiceScreen' options={{title: 'Choose screens'}} component={ChoiceScreen}/>
