@@ -47,6 +47,7 @@ const ChoiceScreen = ({navigation}) => {
   const handleOnConnected = async () => {
     try {
       const written = await deviceObject.write(data);
+      setBtFlag(false);
       if(written !== null){
         ToastAndroid.showWithGravity('Data updated succesfully!', ToastAndroid.SHORT, ToastAndroid.BOTTOM);
         setDeviceObject(null);
@@ -74,7 +75,7 @@ const ChoiceScreen = ({navigation}) => {
       <Button onPress={() => setData('3')} text='3'/>
       <Button onPress={() => navigation.goBack()} text='change device'/>
       <Button onPress={() => handleSendData()} text='send data'/>
-      {btFlag ? <EnableBluetooth onEnabled={() => setBtFlag(false)}/> : null }
+      {btFlag ? <EnableBluetooth onEnabled={() => {setBtFlag(false); handleSendData();}}/> : null }
       {deviceObject !== null ?
       <ConnectingToDevice device={deviceObject} 
                           onConnected={() => handleOnConnected()}
