@@ -11,14 +11,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ConnectionScreen = ({navigation}) => {
 
-  const [btEnabled, setBtEnabled] = useState(false);
   const [bondedDevices, setBondedDevices] = useState([]);
   const [deviceToConnect, setDeviceToConnect] = useState(null);
   const [focusFlag, setFocusFlag] = useState(true);
+  const [skipFlag, setSkipFlag] = useState(false);
 
   const checkStorage = async () => {
     try {
-      const device = AsyncStorage.getItem('defaulDevice');
+      const device = await AsyncStorage.getItem('defaultDevice');
       if(device !== null)
         navigation.navigate('ChoiceScreen');
     }
@@ -48,13 +48,6 @@ const ConnectionScreen = ({navigation}) => {
     checkStorage();
   }, [])
 
-  useEffect(() => {
-    if(btEnabled === true){
-      console.log('test');
-      getDevices();
-    }
-  },[btEnabled])
-
   useFocusEffect( 
     useCallback(() => {
       setFocusFlag(true);
@@ -68,11 +61,12 @@ const ConnectionScreen = ({navigation}) => {
   
   return (
     <ScrollView>
-      {focusFlag ? <EnableBluetooth onEnabled={() => setBtEnabled(true)}/> : null}
+      {focusFlag ? <EnableBluetooth onEnabled={() => getDevices()}/> : null}
       <RequestPermission/>
+      {deviceToConnect !== null ?
       <ConnectingToDevice device={deviceToConnect} 
                           onConnected={() => handleOnConnected()}
-                          onCancel={() => setDeviceToConnect(null)}/>
+                          onCancel={() => setDeviceToConnect(null)}/> : null}
       {bondedDevices.length === 0 ? 
       <View className='flex-1 justify-center p-2 items-center gap-2'>
         <Text className='text-center'> No paired devices foud</Text>

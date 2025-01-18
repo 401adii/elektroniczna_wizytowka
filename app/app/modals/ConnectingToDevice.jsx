@@ -1,28 +1,49 @@
 import { ToastAndroid } from 'react-native'
-import React, {useState, useEffect} from 'react'
+import React, {useRef, useEffect} from 'react'
 import PopUpWithButton from '../components/PopUpWithButton'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const ConnectingToDevice = ({device, onConnected, onCancel}) => {
 
-	const [chosenDevice, setChosenDevice] = useState(null);
+	const cancelledRef = useRef(false);
 
 	const handleOnCancel = () => {
 		onCancel();
-		setChosenDevice(null);
+		cancelledRef.current = true;
 	}
 
 	const handleConnect = async () => {
 		try {
-			const connected = await device.connect();
+			const connected = await device.connect({useExternal: true});
 			if(connected === true){
-				saveDevice();
-				setChosenDevice(null);
-				onConnected();
+				handleOnConnected();
 			}
 		}
 		catch(error) {
 			error.log('Connecting to device -> handleConnect(): ', error);
+		}
+	}
+
+	const handleOnConnected = () => {
+		if(cancelledRef.current === false){
+			onConnected();
+			saveDevice();
+			ToastAndroid.showWithGravity('Connected succesfully!',
+				ToastAndroid.SHORT,
+				ToastAndroid.BOTTOM)
+		}
+		else {
+			disconnect();
+			cancelledRef.current = false
+		}
+	}
+
+	const disconnect = async () => {
+		try {
+			await device.disconnect();
+		}
+		catch(error) {
+			error.log('Connecting to device -> disconnect(): ', error);
 		}
 	}
 
@@ -42,21 +63,17 @@ const ConnectingToDevice = ({device, onConnected, onCancel}) => {
 
 	useEffect(() => {
 		if(device !== null){
-			setChosenDevice(device);
 			handleConnect();
+			cancelledRef.current = false
 		}
 	}, [device])
 
     return (
-        <PopUpWithButton text={chosenDevice !== null ? `Connecting to ${device._nativeDevice?.name}` : null} 
+        <PopUpWithButton text={device !== null ? `Connecting to ${device._nativeDevice?.name}` : null} 
                         buttonText='cancel'
-                        visible={chosenDevice !== null ? true : false}
+                        visible={device !== null ? true : false}
                         onPress={() => handleOnCancel()}/>
     )
 }
 
 export default ConnectingToDevice
-
-//to do:
-//handle multiple connections attemp with onError() function
-//find a way to cancel connection
