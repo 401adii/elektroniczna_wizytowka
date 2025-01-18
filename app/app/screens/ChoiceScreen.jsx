@@ -1,82 +1,84 @@
-import { View, Text } from 'react-native'
-import React, {useState, useEffect} from 'react'
+import {ToastAndroid, View} from 'react-native'
+import React, {useState} from 'react'
 import Button from '../components/Button'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import ConnectingToDevice from '../modals/ConnectingToDevice'
-import RNBluetoothClassic, {BluetoothDevice} from 'react-native-bluetooth-classic'
 import EnableBluetooth from '../modals/EnableBluetooth'
+import RNBluetoothClassic from 'react-native-bluetooth-classic'
+import ConnectingToDevice from '../modals/ConnectingToDevice'
 
 const ChoiceScreen = ({navigation}) => {
 
-  const [defaultDevice, setDefaultDevice] = useState(null);
+  const [data, setData] = useState('nothing');
   const [deviceObject, setDeviceObject] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [readyToSend, setReadyToSend] = useState(false);
-  
-  const loadDefaultDevice = async () => {
-    try {
-      const device = await AsyncStorage.getItem('defaultDevice');
-      if(device !== null)
-        setDefaultDevice(JSON.parse(device));
-    }
-    catch (error) {
-      console.error(error);
-    }
+  const [btFlag, setBtFlag] = useState(false);
+
+  const handleSendData = async () => {
+    setBtFlag(true);
+    await getDeviceJson();
   }
 
-  const handleWrite = async (data) => {
+  const getDeviceJson = async () => {
     try {
-      await deviceObject.write(data);
-    }
-    catch(error){
-      console.error(error);
-    }
-  }
-
-  const getDevice = async () => {
-    try{
-      const devices = await RNBluetoothClassic.getBondedDevices();
-      if(devices !== null){
-        const device = devices.find(d => d._nativeDevice?.address === defaultDevice._nativeDevice?.address);
-        if(device !== null)
-          setDeviceObject(device);
+      const jsonData = await AsyncStorage.getItem('defaultDevice');
+      if(jsonData !== null){
+        await getDeviceObject(JSON.parse(jsonData));
       }
     }
-    catch(error){
-      console.error(error);
+    catch(error) {
+      console.error('Choice screen, getDeviceJson(): ', error);
+    }
+  }
+  
+  const getDeviceObject = async (jsonData) => {
+    try {
+      const devices = await RNBluetoothClassic.getBondedDevices();
+      if(devices !== null){
+        console.log(jsonData);
+        const object = devices.find(d => d._nativeDevice?.address === jsonData._nativeDevice?.address);
+        if(object !== null)
+          setDeviceObject(object);
+      }
+    }
+    catch(error) {
+      console.error('Choice screen, getDeviceObject(): ', error);
     }
   }
 
-  const connect = async () => {
+  const handleOnConnected = async () => {
+    try {
+      const written = await deviceObject.write(data);
+      if(written !== null){
+        ToastAndroid.showWithGravity('Data updated succesfully!', ToastAndroid.SHORT, ToastAndroid.BOTTOM);
+        setDeviceObject(null);
+        await disconnectDevice();
+      }
+    }
+    catch(error) {
+      console.error('Choice screen, handleOnConnected(): ', error);
+    }
+  }
+  
+  const disconnectDevice = async () => {
     try{
-      const connected = await deviceObject.connect();
-      if(connected)
-        setIsConnected(true);
+      await deviceObject.disconnect();
     }
     catch(error){
-      console.error(error);
+      console.error('Choice screen, disconnectDevice(): ', error);
     }
   }
-
-  useEffect(() => {
-    loadDefaultDevice();
-  }, [])
-
-  useEffect(() => {
-    if(deviceObject !== null){
-      console.log('attempting connect');
-      connect();
-    }
-  }, [deviceObject])
 
   return (
     <View className='flex-1 items-center justify-center p-4 gap-4'>
-      <Button onPress={() => setReadyToSend(true)} text='1'/>
-      <Button onPress={() => handleWrite('2')} text='2'/>
-      <Button onPress={() => handleWrite('3')} text='3'/>
-      <Button onPress={() => getDevice()} text='connect'/>
+      <Button onPress={() => setData('1')} text='1'/>
+      <Button onPress={() => setData('2')} text='2'/>
+      <Button onPress={() => setData('3')} text='3'/>
       <Button onPress={() => navigation.goBack()} text='change device'/>
-      {readyToSend ? <EnableBluetooth onEnabled={() => console.log('enabled')}/> : null }
+      <Button onPress={() => handleSendData()} text='send data'/>
+      {btFlag ? <EnableBluetooth onEnabled={() => setBtFlag(false)}/> : null }
+      {deviceObject !== null ?
+      <ConnectingToDevice device={deviceObject} 
+                          onConnected={() => handleOnConnected()}
+                          onCancel={() => setDeviceObject(null)}/> : null}
     </View>
   )
 }
