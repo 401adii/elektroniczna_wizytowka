@@ -70,7 +70,7 @@ const ChoiceScreen = ({navigation}) => {
 
   return (
     <View className='flex-1 items-center justify-center p-4 gap-4'>
-      <Button onPress={() => setData('1')} text='1'/>
+      <Button onPress={() => navigation.navigate('CredentialsEditor')} text='1'/>
       <Button onPress={() => setData('2')} text='2'/>
       <Button onPress={() => setData('3')} text='3'/>
       <Button onPress={() => navigation.goBack()} text='change device'/>
