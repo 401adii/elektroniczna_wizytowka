@@ -15,9 +15,12 @@
 #define DEEP_SLEEP_TIME_US 10000000
 #define BT_TIME_TO_CONNECT_MS 3000
 
+constexpr unsigned int SERIAL_BT_TIMEOUT = 1000;
+constexpr size_t MAX_BT_MESSAGE_LENGTH = 512;
+
+
 bool isConnected = false;
 bool dataUpdated = false;
-char received;
 int currentScreen = 1;
 
 BluetoothSerial SerialBT;
@@ -54,6 +57,8 @@ void onBTDisconnect();
 void saveDataToFlash(const String& key, const String& value);
 void blinkLED();
 void startDeepSleep();
+String readSerialMessageBT();
+void parseAndSaveToNVS(const String& data);
 
 void setup() {
 
@@ -101,33 +106,21 @@ void loop() {
     
     if (SerialBT.available()) {
 
-      String receivedData = SerialBT.readStringUntil('\n');
+      String receivedData = readSerialMessageBT();
 
-      if ((receivedData[0] == '1'||receivedData[0] == '2'||receivedData[0] == '3')&& receivedData[1] != '.') {
+      /***************************************TO BE REPLACED BY ToF READING********************************/
+      if ((receivedData[0] == '1'||receivedData[0] == '2'||receivedData[0] == '3') && receivedData[1] != ':') {
 
         input = receivedData[0];
 
       }
+      /***************************************TO BE REPLACED BY ToF READING********************************/
 
-      Serial.println("Received data: " + receivedData);
-      int separatorIndex = receivedData.indexOf('.');
-
-      if (separatorIndex != -1) {
-
-        String key = receivedData.substring(0, separatorIndex);
-        String value = receivedData.substring(separatorIndex + 1);
-        saveDataToFlash(key, value);
-
-      } else {
-
-        Serial.println("Incorrect data format");
-
+      Serial.println("Received data raw: " + receivedData);
+      if(receivedData.length() > 0) {
+        parseAndSaveToNVS(receivedData);
       }
-      
-      Serial.write(received);
-
     }
-
   }
 
   if(!isConnected) {
@@ -189,7 +182,7 @@ void onBTDisconnect() {
 
 }
 
-void saveDataToFlash(const String& key, const String& value) { // zapis danych w formie klucz -> wartosc do flasha
+void saveDataToFlash(const String& key, const String& value) {
 
   Data.begin("storage", false);  
   Data.putString(key.c_str(), value);
@@ -366,4 +359,64 @@ void startDeepSleep(){
   connectWait = 0;
   esp_sleep_enable_timer_wakeup(DEEP_SLEEP_TIME_US);
   esp_deep_sleep_start();
+}
+
+String readSerialMessageBT() {
+  String buffer;
+  unsigned long startTime = millis();
+  
+  while (millis() - startTime < SERIAL_BT_TIMEOUT) {
+    while (SerialBT.available()) {
+      char c = SerialBT.read();
+      
+      if (c == '\r') {
+        return buffer;
+      }
+      
+      if (buffer.length() >= MAX_BT_MESSAGE_LENGTH) {
+        Serial.println("BT message too long!");
+        return "";
+      }
+      
+      buffer += c;
+    }
+  }
+  
+  Serial.println("Timeout waiting for BT message!");
+  return "";
+}
+
+void parseAndSaveToNVS(const String& data) {
+  int lineStart = 0;
+  
+  while (lineStart < data.length()) {
+    int lineEnd = data.indexOf('\n', lineStart);
+    
+    if (lineEnd == -1) {
+      lineEnd = data.length();
+    }
+
+    String line = data.substring(lineStart, lineEnd);
+    line.trim();  // Remove leading/trailing whitespace
+    
+    if (line.length() > 0) {
+      int colonIndex = line.indexOf(':');
+      
+      if (colonIndex != -1) {
+        String key = line.substring(0, colonIndex);
+        String value = line.substring(colonIndex + 1);
+        
+        // Trim key and value in case of spaces
+        key.trim();
+        value.trim();
+        
+        if (key.length() > 0 && value.length() > 0) {
+          //save to NVS
+          saveDataToFlash(key, value);
+        }
+      }
+    }
+    
+    lineStart = lineEnd + 1;  // Move to next line
+  }
 }
