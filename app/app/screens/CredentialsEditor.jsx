@@ -1,21 +1,17 @@
 import { View, Text } from 'react-native'
-import React,{useState} from 'react'
+import React,{useState, useEffect} from 'react'
 import Button from '../components/Button';
 import Input from '../components/Input';
 
-const CredentialsEditor = () => {
+const CredentialsEditor = ({navigation}) => {
 
-    const [data, setData] = useState({1 : "test",
-                                      2 : "test2",
-                                      3 : "test3"});
+    const [data, setData] = useState({});
 
     const handleChange = (key, value) => {
         setData((prevData) => ({
             ...prevData, [key]:value,
         }));
-        console.log(data);
     }
-
 
   return (
     <View className='flex-1 gap-4 items-center justify-center pb-80'>
@@ -25,12 +21,17 @@ const CredentialsEditor = () => {
         </View>
         <View className='items-center'>
             <Text className='text-center'>Text 2</Text>
-            <Input/>
+            <Input onChange={(value) => handleChange(2, value)}/>
         </View>
         <View className='items-center'>
             <Text className='text-center'>Text 3</Text>
-            <Input/>
+            <Input onChange={(value) => handleChange(3, value)}/>
         </View>
+        <Button text='confirm' onPress={() => navigation.navigate('ChoiceScreen',
+            {
+                newData: data
+            }
+        )}/>
     </View>
   )
 }

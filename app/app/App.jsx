@@ -15,7 +15,9 @@ export default function App() {
       <Stack.Navigator animationTypeForReplace='push' initialRouteName='ConnectionScreen'>
         <Stack.Screen name='test' component={TestView}/>
         <Stack.Screen name='ConnectionScreen' options={{title: 'Connect to a device'}} component={ConnectionScreen}/>
-        <Stack.Screen name='ChoiceScreen' options={{title: 'Choose screens'}} component={ChoiceScreen}/>
+        <Stack.Screen name='ChoiceScreen' options={{title: 'Choose screens'}} component={ChoiceScreen} initialParams={{
+          newData: ""
+        }}/>
         <Stack.Screen name='CredentialsEditor' options={{title: 'Edit credentials screen'}} component={CredentialsEditor}/>
       </Stack.Navigator>
     </NavigationContainer>

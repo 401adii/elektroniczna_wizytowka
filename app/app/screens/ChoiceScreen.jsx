@@ -1,16 +1,18 @@
 import {ToastAndroid, View} from 'react-native'
-import React, {useState} from 'react'
+import React, {useCallback, useState} from 'react'
 import Button from '../components/Button'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import EnableBluetooth from '../modals/EnableBluetooth'
 import RNBluetoothClassic from 'react-native-bluetooth-classic'
 import ConnectingToDevice from '../modals/ConnectingToDevice'
+import { useFocusEffect } from '@react-navigation/native'
 
-const ChoiceScreen = ({navigation}) => {
+const ChoiceScreen = ({navigation, route}) => {
 
   const [data, setData] = useState('nothing');
   const [deviceObject, setDeviceObject] = useState(null);
   const [btFlag, setBtFlag] = useState(false);
+  const { newData } = route.params;
 
   const handleSendData = async () => {
     setBtFlag(true);
@@ -33,7 +35,6 @@ const ChoiceScreen = ({navigation}) => {
     try {
       const devices = await RNBluetoothClassic.getBondedDevices();
       if(devices !== null){
-        console.log(jsonData);
         const object = devices.find(d => d._nativeDevice?.address === jsonData._nativeDevice?.address);
         if(object !== null)
           setDeviceObject(object);
@@ -46,7 +47,9 @@ const ChoiceScreen = ({navigation}) => {
 
   const handleOnConnected = async () => {
     try {
-      const written = await deviceObject.write(data);
+      const parsedData = convertJsonToString(data);
+      console.log(parsedData);
+      const written = await deviceObject.write(parsedData);
       setBtFlag(false);
       if(written !== null){
         ToastAndroid.showWithGravity('Data updated succesfully!', ToastAndroid.SHORT, ToastAndroid.BOTTOM);
@@ -67,6 +70,19 @@ const ChoiceScreen = ({navigation}) => {
       console.error('Choice screen, disconnectDevice(): ', error);
     }
   }
+
+  const convertJsonToString = (json) => {
+    const stringifiedJson = JSON.stringify(json);
+    const formattedString = stringifiedJson.replace(/[{}"]/g, '').replace(/,/g, '\n');
+    return formattedString;
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      if(newData !== "")
+        setData(newData);
+    },[])
+  )
 
   return (
     <View className='flex-1 items-center justify-center p-4 gap-4'>
