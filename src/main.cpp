@@ -1,3 +1,4 @@
+#include <vector>
 #include <GxEPD2_BW.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include <FS.h>
@@ -7,6 +8,7 @@
 #include "GxEPD2_display_selection_new_style.h"
 #include "images.h"
 #include "elapsedMillis.h"
+#include "Screen.h"
 
 #define PIN_ENABLE 13
 
@@ -17,11 +19,14 @@ constexpr uint32_t DEEP_SLEEP_TIME_US =  10000000;
 constexpr uint16_t BT_TIME_TO_CONNECT_MS = 3000;
 constexpr uint16_t SERIAL_BT_TIMEOUT = 1000;
 constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 512;
+constexpr uint8_t MAX_ACTIVE_SCREENS = 5;
 
 
 bool isConnected = false;
 bool dataUpdated = false;
-uint8_t currentScreen = 1;
+uint8_t currentScreen = 0;
+
+std::vector<Screen> Screens = {}; 
 
 BluetoothSerial SerialBT;
 elapsedMillis ledBlink;
@@ -49,9 +54,9 @@ ScheduleEntry schedule[] = {
 
 };
 
+void drawScreen0();
 void drawScreen1();
 void drawScreen2();
-void drawScreen3();
 void onBTConnect();
 void onBTDisconnect();
 void saveDataToFlash(const String& key, const String& value);
@@ -92,6 +97,14 @@ void setup() {
     if (event == ESP_SPP_CLOSE_EVT) onBTDisconnect();
 
   });
+
+  Screen NameScreen(1, true, &drawScreen0);
+  Screen ScheduleScreen(2, true, &drawScreen1);
+  Screen QRScreen(3, true, &drawScreen2);
+
+  Screens.push_back(NameScreen);
+  Screens.push_back(ScheduleScreen);
+  Screens.push_back(QRScreen);
 
   SerialBT.begin(DEVICE_NAME);
   Serial.println("Waiting for BT connection...");
@@ -140,6 +153,7 @@ void loop() {
   if (dataUpdated) {
 
     input = currentScreen;
+    Screens[input].Print();
     dataUpdated  = false;
   }
 
@@ -147,17 +161,17 @@ void loop() {
 
     case 1:
       input = -1;
-      drawScreen1();
+      drawScreen0();
       break;
 
     case 2:
       input = -1;
-      drawScreen2();
+      drawScreen1();
       break;
 
     case 3:
       input = -1;
-      drawScreen3();
+      drawScreen2();
       break;
 
     default:
@@ -192,7 +206,7 @@ void saveDataToFlash(const String& key, const String& value) {
 
 }
 
-void drawScreen1() {
+void drawScreen0() {
 
   display.setFullWindow();
   display.firstPage();
@@ -245,12 +259,12 @@ void drawScreen1() {
 
   } while (display.nextPage());
 
-  currentScreen = 1;
+  currentScreen = 0;
   Serial.println("Print screen 1");
 
 }
 
-void drawScreen2() {
+void drawScreen1() {
 
   display.setTextSize(1);
   const int startHour = 7;  
@@ -317,12 +331,12 @@ void drawScreen2() {
   }
   } while (display.nextPage());
 
-  currentScreen = 2;
+  currentScreen = 1;
   Serial.println("Print screen 2");
 
 }
 
-void drawScreen3() {
+void drawScreen2() {
 
   display.setFullWindow();
   display.firstPage();
@@ -342,7 +356,7 @@ void drawScreen3() {
   display.print("Most wiedzy");
   } while(display.nextPage());
 
-  currentScreen = 3;
+  currentScreen = 2;
   Serial.println("Print screen 3");
 
 }
