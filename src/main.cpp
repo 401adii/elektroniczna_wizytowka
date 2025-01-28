@@ -24,9 +24,6 @@ constexpr uint8_t MAX_ACTIVE_SCREENS = 5;
 
 bool isConnected = false;
 bool dataUpdated = false;
-uint8_t currentScreen = 0;
-
-std::vector<Screen> Screens = {}; 
 
 BluetoothSerial SerialBT;
 elapsedMillis ledBlink;
@@ -34,7 +31,6 @@ elapsedMillis connectWait;
 
 Preferences Data;
 
-int8_t input;
 
 struct ScheduleEntry {
 
@@ -98,13 +94,9 @@ void setup() {
 
   });
 
-  Screen NameScreen(1, true, &drawScreen0);
-  Screen ScheduleScreen(2, true, &drawScreen1);
-  Screen QRScreen(3, true, &drawScreen2);
-
-  Screens.push_back(NameScreen);
-  Screens.push_back(ScheduleScreen);
-  Screens.push_back(QRScreen);
+  Screen NameScreen(0, true, &drawScreen0);
+  Screen ScheduleScreen(1, false, &drawScreen1);
+  Screen QRScreen(2, true, &drawScreen2);
 
   SerialBT.begin(DEVICE_NAME);
   Serial.println("Waiting for BT connection...");
@@ -122,10 +114,20 @@ void loop() {
       String receivedData = readSerialMessageBT();
 
       /***************************************TO BE REPLACED BY ToF READING********************************/
-      if ((receivedData[0] == '1'||receivedData[0] == '2'||receivedData[0] == '3') && receivedData[1] != ':') {
+      if (receivedData[1] != ':') {
+        if(receivedData[0] == 'n'){
+          Serial.println("next");
+          Serial.println(Screen::activeScreenIndex);
 
-        input = receivedData[0];
+          Screen::Next();
+          Serial.println(Screen::activeScreenIndex);
+          Screen::PrintActive();
+        }
 
+        if(receivedData[0] == 'p'){
+          Screen::Previous();
+          Screen::PrintActive();
+        }
       }
       /***************************************TO BE REPLACED BY ToF READING********************************/
 
@@ -152,32 +154,8 @@ void loop() {
 
   if (dataUpdated) {
 
-    input = currentScreen;
-    Screens[input].Print();
+    Screen::PrintActive();
     dataUpdated  = false;
-  }
-
-  switch (input) {
-
-    case 1:
-      input = -1;
-      drawScreen0();
-      break;
-
-    case 2:
-      input = -1;
-      drawScreen1();
-      break;
-
-    case 3:
-      input = -1;
-      drawScreen2();
-      break;
-
-    default:
-      input = -1;
-      break;
-
   }
 
 }
@@ -259,7 +237,6 @@ void drawScreen0() {
 
   } while (display.nextPage());
 
-  currentScreen = 0;
   Serial.println("Print screen 1");
 
 }
@@ -331,7 +308,6 @@ void drawScreen1() {
   }
   } while (display.nextPage());
 
-  currentScreen = 1;
   Serial.println("Print screen 2");
 
 }
@@ -356,7 +332,6 @@ void drawScreen2() {
   display.print("Most wiedzy");
   } while(display.nextPage());
 
-  currentScreen = 2;
   Serial.println("Print screen 3");
 
 }
