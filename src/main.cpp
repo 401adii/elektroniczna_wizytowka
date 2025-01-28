@@ -11,17 +11,17 @@
 #define PIN_ENABLE 13
 
 #define DEVICE_NAME "ESP32-BT-Test"
-#define LED_BT_CONNECTING_BLINK_PERIOD_MS 500
-#define DEEP_SLEEP_TIME_US 10000000
-#define BT_TIME_TO_CONNECT_MS 3000
 
-constexpr unsigned int SERIAL_BT_TIMEOUT = 1000;
-constexpr size_t MAX_BT_MESSAGE_LENGTH = 512;
+constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
+constexpr uint32_t DEEP_SLEEP_TIME_US =  10000000;
+constexpr uint16_t BT_TIME_TO_CONNECT_MS = 3000;
+constexpr uint16_t SERIAL_BT_TIMEOUT = 1000;
+constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 512;
 
 
 bool isConnected = false;
 bool dataUpdated = false;
-int currentScreen = 1;
+uint8_t currentScreen = 1;
 
 BluetoothSerial SerialBT;
 elapsedMillis ledBlink;
@@ -29,12 +29,12 @@ elapsedMillis connectWait;
 
 Preferences Data;
 
-int input;
+int8_t input;
 
 struct ScheduleEntry {
 
-  int day;    // dni tygodnia czyli 0 => pon, 4=> pt
-  int hour;   // godzina rozpoczenia czyli 7 oznacza ze zaczyna sie o 7 a 15 ze o 15 
+  uint8_t day;    // dni tygodnia czyli 0 => pon, 4=> pt
+  uint8_t hour;   // godzina rozpoczenia czyli 7 oznacza ze zaczyna sie o 7 a 15 ze o 15 
   String text; // to co ma byc wpisane
 
 };
@@ -62,16 +62,16 @@ void parseAndSaveToNVS(const String& data);
 
 void setup() {
 
-  if (!SPIFFS.begin(true)) {
+  // if (!SPIFFS.begin(true)) {
 
-    Serial.println("SPIFFS initialization failed");
-    return;
+  //   Serial.println("SPIFFS initialization failed");
+  //   return;
 
-  } else {
+  // } else {
 
-    Serial.println("SPIFFS initialized correctly");
+  //   Serial.println("SPIFFS initialized correctly");
 
-  }
+  // }
 
   pinMode(PIN_ENABLE, OUTPUT);
   digitalWrite(PIN_ENABLE, HIGH);
@@ -145,17 +145,17 @@ void loop() {
 
   switch (input) {
 
-    case '1':
+    case 1:
       input = -1;
       drawScreen1();
       break;
 
-    case '2':
+    case 2:
       input = -1;
       drawScreen2();
       break;
 
-    case '3':
+    case 3:
       input = -1;
       drawScreen3();
       break;
