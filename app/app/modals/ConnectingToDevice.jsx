@@ -14,7 +14,13 @@ const ConnectingToDevice = ({device, onConnected, onCancel}) => {
 
 	const handleConnect = async () => {
 		try {
-			const connected = await device.connect({useExternal: true});
+			const isConnected = await device.isConnected();
+			if(isConnected === true){
+				handleOnConnected();
+				return;
+			}
+				
+			const connected = await device.connect({useExternal: true, DELIMITER: '\n'});
 			if(connected === true){
 				handleOnConnected();
 			}

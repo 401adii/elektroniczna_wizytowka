@@ -9,13 +9,14 @@ import { useFocusEffect } from '@react-navigation/native'
 
 const ChoiceScreen = ({navigation, route}) => {
 
-  const [data, setData] = useState('nothing');
+  const [data, setData] = useState('');
   const [deviceObject, setDeviceObject] = useState(null);
   const [btFlag, setBtFlag] = useState(false);
   const { newData } = route.params;
 
   const handleSendData = async () => {
     setBtFlag(true);
+    console.log('sending data');
     await getDeviceJson();
   }
 
@@ -54,26 +55,16 @@ const ChoiceScreen = ({navigation, route}) => {
       if(written !== null){
         ToastAndroid.showWithGravity('Data updated succesfully!', ToastAndroid.SHORT, ToastAndroid.BOTTOM);
         setDeviceObject(null);
-        await disconnectDevice();
       }
     }
     catch(error) {
       console.error('Choice screen, handleOnConnected(): ', error);
     }
   }
-  
-  const disconnectDevice = async () => {
-    try{
-      await deviceObject.disconnect();
-    }
-    catch(error){
-      console.error('Choice screen, disconnectDevice(): ', error);
-    }
-  }
 
   const convertJsonToString = (json) => {
     const stringifiedJson = JSON.stringify(json);
-    const formattedString = stringifiedJson.replace(/[{}"]/g, '').replace(/,/g, '\n');
+    const formattedString = stringifiedJson.replace(/[{}"]/g, '').replace(/,/g, '\n') + '\r';
     return formattedString;
   }
 
@@ -90,7 +81,7 @@ const ChoiceScreen = ({navigation, route}) => {
       <Button onPress={() => setData('2')} text='2'/>
       <Button onPress={() => setData('3')} text='3'/>
       <Button onPress={() => navigation.goBack()} text='change device'/>
-      <Button onPress={() => handleSendData()} text='send data'/>
+      <Button onPress={() => setBtFlag(true)} text='send data'/>
       {btFlag ? <EnableBluetooth onEnabled={() => {setBtFlag(false); handleSendData();}}/> : null }
       {deviceObject !== null ?
       <ConnectingToDevice device={deviceObject} 
