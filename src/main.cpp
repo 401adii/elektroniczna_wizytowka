@@ -124,7 +124,7 @@ void loop() {
       /***************************************TO BE REPLACED BY ToF READING********************************/
       if ((receivedData[0] == '1'||receivedData[0] == '2'||receivedData[0] == '3') && receivedData[1] != ':') {
 
-        input = receivedData[0];
+        input = (uint8_t)receivedData[0];
 
       }
       /***************************************TO BE REPLACED BY ToF READING********************************/
@@ -159,17 +159,17 @@ void loop() {
 
   switch (input) {
 
-    case 1:
+    case (uint8_t)'1':
       input = -1;
       drawScreen0();
       break;
 
-    case 2:
+    case (uint8_t)'2':
       input = -1;
       drawScreen1();
       break;
 
-    case 3:
+    case (uint8_t)'3':
       input = -1;
       drawScreen2();
       break;
