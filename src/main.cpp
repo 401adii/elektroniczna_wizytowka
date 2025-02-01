@@ -1,4 +1,3 @@
-#include <vector>
 #include <GxEPD2_BW.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include <FS.h>
@@ -8,7 +7,7 @@
 #include "GxEPD2_display_selection_new_style.h"
 #include "images.h"
 #include "elapsedMillis.h"
-#include "Screen.h"
+#include "ScreenManager.h"
 
 #define PIN_ENABLE 13
 
@@ -30,6 +29,7 @@ elapsedMillis ledBlink;
 elapsedMillis connectWait;
 
 Preferences Data;
+ScreenManager screenManager;
 
 
 struct ScheduleEntry {
@@ -94,12 +94,18 @@ void setup() {
 
   });
 
-  Screen NameScreen(0, true, &drawScreen0);
-  Screen ScheduleScreen(1, false, &drawScreen1);
-  Screen QRScreen(2, true, &drawScreen2);
-
   SerialBT.begin(DEVICE_NAME);
   Serial.println("Waiting for BT connection...");
+
+  screenManager.addScreen(0, &drawScreen0);
+  screenManager.addScreen(1, &drawScreen1);
+  screenManager.addScreen(2, &drawScreen2);
+  screenManager.setActiveScreen(0);
+  screenManager.removeScreen(1);
+  screenManager.setActiveScreen(1);
+  screenManager.setActiveScreen(2);
+  screenManager.removeScreen(2);
+  screenManager.removeScreen(0);
 
 }
 
@@ -112,26 +118,26 @@ void loop() {
     if (SerialBT.available()) {
 
       String receivedData = readSerialMessageBT();
+      Serial.println("Received data raw: " + receivedData);
 
       /***************************************TO BE REPLACED BY ToF READING********************************/
       if (receivedData[1] != ':') {
         if(receivedData[0] == 'n'){
           Serial.println("next");
-          Serial.println(Screen::activeScreenIndex);
-
-          Screen::Next();
-          Serial.println(Screen::activeScreenIndex);
-          Screen::PrintActive();
+          //switch to the next active screen and print it
+          screenManager.nextScreen();
+          screenManager.printCurrentScreen();
         }
 
         if(receivedData[0] == 'p'){
-          Screen::Previous();
-          Screen::PrintActive();
+          Serial.println("prev");
+          //switch to the prev active screen and print it
+          screenManager.prevScreen();
+          screenManager.printCurrentScreen();
         }
       }
       /***************************************TO BE REPLACED BY ToF READING********************************/
 
-      Serial.println("Received data raw: " + receivedData);
       if(receivedData.length() > 0) {
         parseAndSaveToNVS(receivedData);
       }
@@ -153,8 +159,7 @@ void loop() {
   }
 
   if (dataUpdated) {
-
-    Screen::PrintActive();
+    screenManager.printCurrentScreen();
     dataUpdated  = false;
   }
 
@@ -186,6 +191,7 @@ void saveDataToFlash(const String& key, const String& value) {
 
 void drawScreen0() {
 
+  Serial.println("Print screen 0");
   display.setFullWindow();
   display.firstPage();
 
@@ -237,12 +243,12 @@ void drawScreen0() {
 
   } while (display.nextPage());
 
-  Serial.println("Print screen 1");
 
 }
 
 void drawScreen1() {
 
+  Serial.println("Print screen 1");
   display.setTextSize(1);
   const int startHour = 7;  
   const int endHour = 18; 
@@ -308,12 +314,12 @@ void drawScreen1() {
   }
   } while (display.nextPage());
 
-  Serial.println("Print screen 2");
 
 }
 
 void drawScreen2() {
 
+  Serial.println("Print screen 3");
   display.setFullWindow();
   display.firstPage();
 
@@ -332,7 +338,6 @@ void drawScreen2() {
   display.print("Most wiedzy");
   } while(display.nextPage());
 
-  Serial.println("Print screen 3");
 
 }
 
