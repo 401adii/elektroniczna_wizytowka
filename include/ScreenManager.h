@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <functional>
 #include <algorithm>
+#include <Preferences.h>
 
 class ScreenManager {
 public:
@@ -11,10 +12,12 @@ public:
 
     void addScreen(int id, DrawFunction drawFunc);
     void removeScreen(int id);
-    void setActiveScreen(int id);
+    void setCurrentScreen(int id);
     void nextScreen();
     void prevScreen();
     void printCurrentScreen() const;
+    void saveScreens(Preferences &data, const char* name) const;
+    void readAndSetActiveScreens(Preferences &data, const char* name);
 
 private:
     std::unordered_map<int, DrawFunction> screens;

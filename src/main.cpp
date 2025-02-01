@@ -12,6 +12,7 @@
 #define PIN_ENABLE 13
 
 #define DEVICE_NAME "ESP32-BT-Test"
+#define SCREEN_CONNECTED 0
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
 constexpr uint32_t DEEP_SLEEP_TIME_US =  10000000;
@@ -19,6 +20,7 @@ constexpr uint16_t BT_TIME_TO_CONNECT_MS = 3000;
 constexpr uint16_t SERIAL_BT_TIMEOUT = 1000;
 constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 512;
 constexpr uint8_t MAX_ACTIVE_SCREENS = 5;
+constexpr char DATA_STORAGE_NAME[] = "storage";
 
 
 bool isConnected = false;
@@ -55,7 +57,7 @@ void drawScreen1();
 void drawScreen2();
 void onBTConnect();
 void onBTDisconnect();
-void saveDataToFlash(const String& key, const String& value);
+void saveStringToFlash(const String& key, const String& value);
 void blinkLED();
 void startDeepSleep();
 String readSerialMessageBT();
@@ -100,13 +102,7 @@ void setup() {
   screenManager.addScreen(0, &drawScreen0);
   screenManager.addScreen(1, &drawScreen1);
   screenManager.addScreen(2, &drawScreen2);
-  screenManager.setActiveScreen(0);
-  screenManager.removeScreen(1);
-  screenManager.setActiveScreen(1);
-  screenManager.setActiveScreen(2);
-  screenManager.removeScreen(2);
-  screenManager.removeScreen(0);
-
+  screenManager.readAndSetActiveScreens(Data, DATA_STORAGE_NAME);
 }
 
 void loop() {
@@ -147,18 +143,17 @@ void loop() {
   if(!isConnected) {
 
     if(ledBlink > LED_BT_CONNECTING_BLINK_PERIOD_MS) {
-
       blinkLED();
     }
 
     if(connectWait > BT_TIME_TO_CONNECT_MS) {
-
       startDeepSleep();
     }
 
   }
 
   if (dataUpdated) {
+    screenManager.readAndSetActiveScreens(Data, DATA_STORAGE_NAME);
     screenManager.printCurrentScreen();
     dataUpdated  = false;
   }
@@ -179,9 +174,9 @@ void onBTDisconnect() {
 
 }
 
-void saveDataToFlash(const String& key, const String& value) {
+void saveStringToFlash(const String& key, const String& value) {
 
-  Data.begin("storage", false);  
+  Data.begin(DATA_STORAGE_NAME, false);  
   Data.putString(key.c_str(), value);
   Data.end(); 
   Serial.println("[NVS] Saved data: " + key + " = " + value);
@@ -192,6 +187,7 @@ void saveDataToFlash(const String& key, const String& value) {
 void drawScreen0() {
 
   Serial.println("Print screen 0");
+#if SCREEN_CONNECTED
   display.setFullWindow();
   display.firstPage();
 
@@ -201,7 +197,7 @@ void drawScreen0() {
   display.fillScreen(GxEPD_WHITE);
   display.fillRect(0, 0, 800, 100, GxEPD_BLACK);
   
-  String room = Data.getString("1", "POKOJ 456");
+  String room = Data.getString("01", "POKOJ 456");
   int16_t x1, y1;
   uint16_t textWidth1, textHeight1;
   display.setTextSize(2);
@@ -211,7 +207,7 @@ void drawScreen0() {
   display.setTextColor(GxEPD_WHITE);
   display.print(room);
 
-  String name = Data.getString("2","DR INZ. KAMIL STAWIARSKI");
+  String name = Data.getString("02","DR INZ. KAMIL STAWIARSKI");
   int16_t x2, y2;
   uint16_t textWidth2, textHeight2;
   display.setTextSize(3);
@@ -221,7 +217,7 @@ void drawScreen0() {
   display.setTextColor(GxEPD_BLACK);
   display.print(name);
 
-  String tel = Data.getString("3","tel. 123 456 789");
+  String tel = Data.getString("03","tel. 123 456 789");
   int16_t x3, y3;
   uint16_t textWidth3, textHeight3;
   display.setTextSize(2);
@@ -230,7 +226,7 @@ void drawScreen0() {
   display.setCursor(centerX3, 300);
   display.print(tel);
 
-  String mail = Data.getString("4","kamil.stawiarski@pg.edu.pl");
+  String mail = Data.getString("04","kamil.stawiarski@pg.edu.pl");
   int16_t x4, y4;
   uint16_t textWidth4, textHeight4;
   display.setTextSize(2);
@@ -243,12 +239,13 @@ void drawScreen0() {
 
   } while (display.nextPage());
 
-
+#endif
 }
 
 void drawScreen1() {
 
   Serial.println("Print screen 1");
+#if SCREEN_CONNECTED
   display.setTextSize(1);
   const int startHour = 7;  
   const int endHour = 18; 
@@ -314,12 +311,13 @@ void drawScreen1() {
   }
   } while (display.nextPage());
 
-
+#endif
 }
 
 void drawScreen2() {
 
-  Serial.println("Print screen 3");
+  Serial.println("Print screen 2");
+#if SCREEN_CONNECTED
   display.setFullWindow();
   display.firstPage();
 
@@ -337,8 +335,7 @@ void drawScreen2() {
   display.setTextSize(2);
   display.print("Most wiedzy");
   } while(display.nextPage());
-
-
+#endif
 }
 
 void blinkLED()
@@ -406,7 +403,7 @@ void parseAndSaveToNVS(const String& data) {
         
         if (key.length() > 0 && value.length() > 0) {
           //save to NVS
-          saveDataToFlash(key, value);
+          saveStringToFlash(key, value);
         }
       }
     }
