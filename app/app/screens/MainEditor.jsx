@@ -4,10 +4,10 @@ import Button from '../components/Button'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import EnableBluetooth from '../modals/EnableBluetooth'
 import RNBluetoothClassic from 'react-native-bluetooth-classic'
-import ConnectingToDevice from '../modals/ConnectingToDevice'
+import ConnectToDevice from '../modals/ConnectToDevice'
 import { useFocusEffect } from '@react-navigation/native'
 
-const ChoiceScreen = ({navigation, route}) => {
+const MainEditor = ({navigation, route}) => {
 
   const [data, setData] = useState('');
   const [deviceObject, setDeviceObject] = useState(null);
@@ -84,11 +84,11 @@ const ChoiceScreen = ({navigation, route}) => {
       <Button onPress={() => setBtFlag(true)} text='send data'/>
       {btFlag ? <EnableBluetooth onEnabled={() => {setBtFlag(false); handleSendData();}}/> : null }
       {deviceObject !== null ?
-      <ConnectingToDevice device={deviceObject} 
+      <ConnectToDevice device={deviceObject} 
                           onConnected={() => handleOnConnected()}
                           onCancel={() => setDeviceObject(null)}/> : null}
     </View>
   )
 }
 
-export default ChoiceScreen
+export default MainEditor

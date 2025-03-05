@@ -3,7 +3,7 @@ import React, {useRef, useEffect} from 'react'
 import PopUpWithButton from '../components/PopUpWithButton'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-const ConnectingToDevice = ({device, onConnected, onCancel}) => {
+const ConnectToDevice = ({device, onConnected, onCancel}) => {
 
 	const cancelledRef = useRef(false);
 
@@ -82,4 +82,4 @@ const ConnectingToDevice = ({device, onConnected, onCancel}) => {
     )
 }
 
-export default ConnectingToDevice
+export default ConnectToDevice

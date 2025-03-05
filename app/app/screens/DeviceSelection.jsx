@@ -4,12 +4,12 @@ import RequestPermission from '../modals/RequestPermission';
 import RNBluetoothClassic from 'react-native-bluetooth-classic'
 import EnableBluetooth from '../modals/EnableBluetooth';
 import DeviceListItem from '../components/DeviceListItem';
-import ConnectingToDevice from '../modals/ConnectingToDevice';
+import ConnectToDevice from '../modals/ConnectToDevice';
 import Button from '../components/Button';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const ConnectionScreen = ({navigation}) => {
+const DeviceSelection = ({navigation}) => {
 
   const [bondedDevices, setBondedDevices] = useState([]);
   const [deviceToConnect, setDeviceToConnect] = useState(null);
@@ -41,7 +41,7 @@ const ConnectionScreen = ({navigation}) => {
 
   const handleOnConnected = () => {
     setDeviceToConnect(null);
-    navigation.navigate('ChoiceScreen')
+    navigation.navigate('MainEditor');
   }
 
   useEffect(() => {
@@ -64,7 +64,7 @@ const ConnectionScreen = ({navigation}) => {
       {focusFlag ? <EnableBluetooth onEnabled={() => getDevices()}/> : null}
       <RequestPermission/>
       {deviceToConnect !== null ?
-      <ConnectingToDevice device={deviceToConnect} 
+      <ConnectToDevice device={deviceToConnect} 
                           onConnected={() => handleOnConnected()}
                           onCancel={() => setDeviceToConnect(null)}/> : null}
       {bondedDevices.length === 0 ? 
@@ -83,4 +83,4 @@ const ConnectionScreen = ({navigation}) => {
   )
 }
 
-export default ConnectionScreen
+export default DeviceSelection
