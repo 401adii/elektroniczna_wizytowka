@@ -28,7 +28,7 @@ const CredentialsEditor = ({navigation}) => {
             <Input onChange={(value) => handleChange(3, value)}/>
         </View>
         <View className='items-center'>
-            <Text className='text-center'>Text 3</Text>
+            <Text className='text-center'>Text 4</Text>
             <Input onChange={(value) => handleChange(4, value)}/>
         </View>
         <Button text='confirm' onPress={() => navigation.navigate('ChoiceScreen',

@@ -11,7 +11,7 @@ const Input = ({onChange = (val) => {}}) => {
     }
     
     return (
-        <TextInput className='border rounded border-gray-400 p-2 w-48' 
+        <TextInput className='bg-white border rounded border-gray-400 p-2 w-48' 
                     onChangeText={(val) => handleChange(val)}
                     value={value}/>
     )
