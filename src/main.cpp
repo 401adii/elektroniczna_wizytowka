@@ -16,7 +16,7 @@
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
 constexpr uint32_t DEEP_SLEEP_TIME_US =  10000000;
-constexpr uint16_t BT_TIME_TO_CONNECT_MS = 3000;
+constexpr uint16_t BT_TIME_TO_CONNECT_MS = 30000;
 constexpr uint16_t SERIAL_BT_TIMEOUT = 1000;
 constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 512;
 constexpr uint8_t MAX_ACTIVE_SCREENS = 5;
