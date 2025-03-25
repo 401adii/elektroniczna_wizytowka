@@ -246,25 +246,20 @@ void drawScreen1() {
   Serial.println("Print screen 1");
 #if SCREEN_CONNECTED
   display.setTextSize(1);
+  display.setFont(&FreeMonoBold9pt7b);
 
-  // odczyt z NVS
+  // Odczyt konfiguracji z NVS
   Data.begin(DATA_STORAGE_NAME, true);
-  String cols_str = Data.getString("1x", "6");  // domyslnie 6 kolumn
-  String rows_str = Data.getString("1y", "10");  // domyslnie 10 wierszy
-  Data.end();
+  int numCols = Data.getString("1x", "3").toInt();
+  int numRows = Data.getString("1y", "5").toInt();
+  numCols = constrain(numCols, 1, 20);
+  numRows = constrain(numRows, 1, 20);
 
-  // konwersja ze stringa nvsowego na inty
-  int numCols = cols_str.toInt();
-  int numRows = rows_str.toInt();
-  numCols = (numCols > 0) ? numCols : 6;
-  numRows = (numRows > 0) ? numRows : 10;
-
- 
+  // Obliczenia geometryczne
   const int screenWidth = display.width();
   const int screenHeight = display.height();
-  const int gridXOffset = 30;  
-  const int gridYOffset = 20;
-
+  const int gridXOffset = 100;
+  const int gridYOffset = 50;
   const int colWidth = (screenWidth - gridXOffset) / numCols;
   const int rowHeight = (screenHeight - gridYOffset) / numRows;
 
@@ -274,31 +269,73 @@ void drawScreen1() {
   do {
     display.fillScreen(GxEPD_WHITE);
 
-    
+    // Nagłówki kolumn
     for (int col = 0; col < numCols; col++) {
       int x = gridXOffset + col * colWidth;
       display.drawRect(x, 0, colWidth, gridYOffset, GxEPD_BLACK);
-      display.setCursor(x + 5, gridYOffset - 5);
       
+      // Pobierz tekst nagłówka kolumny
+      String headerKey = "1hC" + String(col+1);
+      String headerText = Data.getString(headerKey.c_str(),String(col+1));
+      
+      // Oblicz pozycję tekstu
+      int16_t x1, y1;
+      uint16_t w, h;
+      display.getTextBounds(headerText, 0, 0, &x1, &y1, &w, &h);
+      int textX = x + (colWidth - w)/2 - x1;
+      int textY = (gridYOffset - h)/2 - y1;
+      
+      display.setCursor(textX, textY);
+      display.print(headerText);
     }
 
-    
+    // Wiersze i komórki
     for (int row = 0; row < numRows; row++) {
       int y = gridYOffset + row * rowHeight;
       
-     
+      // Nagłówek wiersza
       display.drawRect(0, y, gridXOffset, rowHeight, GxEPD_BLACK);
-      display.setCursor(5, y + rowHeight/2 + 5);
       
+      // Pobierz tekst nagłówka wiersza
+      String rowKey = "1hR" + String(row+1);
+      String rowText = Data.getString(rowKey.c_str(),String(row+1));
+      
+      // Oblicz pozycję tekstu
+      int16_t x1, y1;
+      uint16_t w, h;
+      display.getTextBounds(rowText, 0, 0, &x1, &y1, &w, &h);
+      int textX = (gridXOffset - w)/2 - x1;
+      int textY = y + (rowHeight - h)/2 - y1;
+      
+      display.setCursor(textX, textY);
+      display.print(rowText);
 
-     
+      // Komórki danych
       for (int col = 0; col < numCols; col++) {
         int x = gridXOffset + col * colWidth;
         display.drawRect(x, y, colWidth, rowHeight, GxEPD_BLACK);
+        
+        // Pobierz dane komórki
+        String cellKey = "1" + String(col+1) + String(row+1);
+        String cellValue = Data.getString(cellKey.c_str(), "");
+        
+        if(cellValue.length() > 0) {
+          // Oblicz pozycję tekstu
+          int16_t x1_val, y1_val;
+          uint16_t w_val, h_val;
+          display.getTextBounds(cellValue, 0, 0, &x1_val, &y1_val, &w_val, &h_val);
+          int textX_val = x + (colWidth - w_val)/2 - x1_val;
+          int textY_val = y + (rowHeight - h_val)/2 - y1_val;
+          
+          display.setCursor(textX_val, textY_val);
+          display.print(cellValue);
+        }
       }
     }
 
   } while (display.nextPage());
+  
+  Data.end();
 #endif
 }
 
