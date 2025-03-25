@@ -12,11 +12,11 @@
 #define PIN_ENABLE 13
 
 #define DEVICE_NAME "ESP32-BT-Test"
-#define SCREEN_CONNECTED 0
+#define SCREEN_CONNECTED 1 //1 podczas testow z ekranem
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
 constexpr uint32_t DEEP_SLEEP_TIME_US =  10000000;
-constexpr uint16_t BT_TIME_TO_CONNECT_MS = 3000;
+constexpr uint16_t BT_TIME_TO_CONNECT_MS = 30000;
 constexpr uint16_t SERIAL_BT_TIMEOUT = 1000;
 constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 512;
 constexpr uint8_t MAX_ACTIVE_SCREENS = 5;
@@ -43,13 +43,13 @@ struct ScheduleEntry {
 };
 
 ScheduleEntry schedule[] = {
-
+/*
   {0, 14, "konsultacje"},
   {1, 12, "konsultacje"},
   {4, 11, "praca wlasna"},
   {3, 9, "praca wlasna"},
   {3, 10, "praca wlasna"}
-
+*/
 };
 
 void drawScreen0();
@@ -243,74 +243,62 @@ void drawScreen0() {
 }
 
 void drawScreen1() {
-
   Serial.println("Print screen 1");
 #if SCREEN_CONNECTED
   display.setTextSize(1);
-  const int startHour = 7;  
-  const int endHour = 18; 
-  const int numHours = endHour - startHour;
 
-  const int screenWidth = display.width(); 
-  const int screenHeight = display.height(); 
+  // odczyt z NVS
+  Data.begin(DATA_STORAGE_NAME, true);
+  String cols_str = Data.getString("1x", "6");  // domyslnie 6 kolumn
+  String rows_str = Data.getString("1y", "10");  // domyslnie 10 wierszy
+  Data.end();
 
-  const int gridXOffset = 80; 
-  const int gridYOffset = 40; 
+  // konwersja ze stringa nvsowego na inty
+  int numCols = cols_str.toInt();
+  int numRows = rows_str.toInt();
+  numCols = (numCols > 0) ? numCols : 6;
+  numRows = (numRows > 0) ? numRows : 10;
 
-  const int colWidth = (screenWidth - gridXOffset) / 5; 
-  const int rowHeight = (screenHeight - gridYOffset) / numHours; 
+ 
+  const int screenWidth = display.width();
+  const int screenHeight = display.height();
+  const int gridXOffset = 30;  
+  const int gridYOffset = 20;
 
-  const char* daysOfWeek[] = {"Pon", "Wt", "Sr", "Czw", "Pt"};
-  const int numDays = 5; 
+  const int colWidth = (screenWidth - gridXOffset) / numCols;
+  const int rowHeight = (screenHeight - gridYOffset) / numRows;
 
   display.setFullWindow();
   display.firstPage();
 
   do {
-
-  display.fillScreen(GxEPD_WHITE); 
-  
-  for (int i = 0; i < numDays; i++) {
-    int x = gridXOffset + i * colWidth; 
-    display.drawRect(x, 0, colWidth, gridYOffset, GxEPD_BLACK); 
-    display.setCursor(x + colWidth / 4, gridYOffset / 2); 
-    display.print(daysOfWeek[i]);
-  }
-  
-  for (int hour = startHour; hour < endHour; hour++) {
-    int y = gridYOffset + (hour - startHour) * rowHeight;
+    display.fillScreen(GxEPD_WHITE);
 
     
-    display.drawRect(0, y, gridXOffset, rowHeight, GxEPD_BLACK); 
-    display.setCursor(10, y + rowHeight / 2); 
-    String timeRange = String(hour) + "-" + String(hour + 1);
-    display.print(timeRange);
+    for (int col = 0; col < numCols; col++) {
+      int x = gridXOffset + col * colWidth;
+      display.drawRect(x, 0, colWidth, gridYOffset, GxEPD_BLACK);
+      display.setCursor(x + 5, gridYOffset - 5);
+      
+    }
 
     
-    for (int i = 0; i < numDays; i++) {
+    for (int row = 0; row < numRows; row++) {
+      int y = gridYOffset + row * rowHeight;
+      
+     
+      display.drawRect(0, y, gridXOffset, rowHeight, GxEPD_BLACK);
+      display.setCursor(5, y + rowHeight/2 + 5);
+      
 
-      int x = gridXOffset + i * colWidth; 
-      display.drawRect(x, y, colWidth, rowHeight, GxEPD_BLACK); 
-
+     
+      for (int col = 0; col < numCols; col++) {
+        int x = gridXOffset + col * colWidth;
+        display.drawRect(x, y, colWidth, rowHeight, GxEPD_BLACK);
+      }
     }
 
-  }
-
-  for (const auto& entry : schedule) {
-
-    if (entry.hour >= startHour && entry.hour < endHour && entry.day >= 0 && entry.day < numDays) {
-
-      int x = gridXOffset + entry.day * colWidth + 5; 
-      int y = gridYOffset + (entry.hour - startHour) * rowHeight + 20; 
-
-      display.setCursor(x, y);
-      display.print(entry.text);
-
-    }
-
-  }
   } while (display.nextPage());
-
 #endif
 }
 

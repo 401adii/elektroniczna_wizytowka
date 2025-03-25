@@ -101,6 +101,7 @@ void ScreenManager::readAndSetActiveScreens(Preferences &data, const char* name)
         String value = data.getString(std::to_string(id).c_str(), "0");
         if (value == "1"){
             activeScreens.push_back(id);
+                
             ScreenManager::setCurrentScreen(id);
             std::cout << "[NVS] Read data: " << id << " = true" << std::endl;
         }
