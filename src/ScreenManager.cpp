@@ -119,10 +119,25 @@ void ScreenManager::readAndSetActiveScreens(Preferences &data, const char* name)
         }
     }
     data.end();
+    infoActiveScreens();
+}
 
+void ScreenManager::infoActiveScreens() const {
     std::cout << "Active screens: ";
     for (auto it = activeScreens.begin(); it != activeScreens.end(); ++it) {
         std::cout << *it << " ";
     }
     std::cout << std::endl;
+}
+
+void ScreenManager::infoCurrentScreen() const {
+    std::cout << "Current screen: " << currentScreen << std::endl;
+}
+
+void ScreenManager::printInfo()  const{
+    std::cout << "------------------------------" << std::endl;
+    std::cout << "SCREEN MANAGER INFO" << std::endl;
+    infoActiveScreens();
+    infoCurrentScreen();
+    std::cout << "------------------------------" << std::endl;
 }
