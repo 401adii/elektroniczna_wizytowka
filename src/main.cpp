@@ -12,7 +12,7 @@
 #define PIN_ENABLE 13
 
 #define DEVICE_NAME "ESP32-BT-Test"
-#define SCREEN_CONNECTED 1 //1 podczas testow z ekranem
+#define SCREEN_CONNECTED 0 //1 podczas testow z ekranem
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
 constexpr uint32_t DEEP_SLEEP_TIME_US =  10000000;
@@ -134,6 +134,10 @@ void loop() {
       }
       /***************************************TO BE REPLACED BY ToF READING********************************/
 
+      //Print screen info
+      if(receivedData[0] == 'i')
+        screenManager.printInfo();
+
       if(receivedData.length() > 0) {
         parseAndSaveToNVS(receivedData);
       }
@@ -154,8 +158,11 @@ void loop() {
 
   if (dataUpdated) {
     screenManager.readAndSetActiveScreens(Data, DATA_STORAGE_NAME);
-    screenManager.printCurrentScreen();
     dataUpdated  = false;
+    while(screenManager.printCurrentScreen() == ScreenManager::Status::CurrentNotActive) {
+      screenManager.nextScreen();
+      dataUpdated = true;
+    }
   }
 
 }
