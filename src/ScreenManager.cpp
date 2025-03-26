@@ -5,39 +5,46 @@ std::unordered_map<int, DrawFunction> screens;
 std::vector<int> activeScreens;
 int currentScreen = -1;
 
-void ScreenManager::addScreen(int id, DrawFunction drawFunc) {
+ScreenManager::Status ScreenManager::addScreen(int id, DrawFunction drawFunc) {
     if (screens.find(id) == screens.end()) {
         screens[id] = drawFunc;
     } else {
         std::cout << "Screen with ID " << id << " already exists." << std::endl;
+        return Status::RepetedID;
     }
+    return Status::OK;
 }
 
-void ScreenManager::removeScreen(int id) {
+ScreenManager::Status ScreenManager::removeScreen(int id) {
   auto it = screens.find(id);
     if (it != screens.end()) {
         auto iter = std::find(activeScreens.begin(), activeScreens.end(), id);
         if (iter != activeScreens.end()) {
             activeScreens.erase(iter);
+            return Status::OK;
         } else {
             std::cout << "Screen with ID " << id << " does not exist in the active screens list." << std::endl;
+            return Status::DoesntExist;
         }
         screens.erase(it);
     } else {
         std::cout << "Screen with ID " << id << " does not exist." << std::endl;
+        return Status::DoesntExist;
     }
 }
 
-void ScreenManager::setCurrentScreen(int id) {
+ScreenManager::Status ScreenManager::setCurrentScreen(int id) {
     auto it = screens.find(id);
     if (it != screens.end()) {
         currentScreen = id;
+        return Status::OK;
     } else {
         std::cout << "Screen with ID " << id << " does not exist." << std::endl;
+        return Status::DoesntExist;
     }
 }
 
-void ScreenManager::nextScreen() {
+ScreenManager::Status ScreenManager::nextScreen() {
     if (!activeScreens.empty()) {
         auto it = std::find(activeScreens.begin(), activeScreens.end(), currentScreen);
         if (it != activeScreens.end() && ++it != activeScreens.end()) {
@@ -45,12 +52,14 @@ void ScreenManager::nextScreen() {
         } else {
             currentScreen = activeScreens.front();
         }
+        return Status::OK;
     } else {
         std::cout << "No active screens to move to the next screen." << std::endl;
+        return Status::NoActiveScreens;
     }
 }
 
-void ScreenManager::prevScreen() {
+ScreenManager::Status ScreenManager::prevScreen() {
     if (!activeScreens.empty()) {
         auto it = std::find(activeScreens.begin(), activeScreens.end(), currentScreen);
         if (it != activeScreens.end()) {
@@ -60,19 +69,24 @@ void ScreenManager::prevScreen() {
             } else {
                 currentScreen = activeScreens.back();
             }
+            return Status::OK;
         } else {
             std::cout << "Current screen not found in active screens." << std::endl;
+            return Status::CurrentNotActive;
         }
     } else {
         std::cout << "No active screens to move to the previous screen." << std::endl;
+        return Status::NoActiveScreens;
     }
 }
 
-void ScreenManager::printCurrentScreen() const {
+ScreenManager::Status ScreenManager::printCurrentScreen() const {
     if (std::find(activeScreens.begin(), activeScreens.end(), currentScreen) != activeScreens.end()) {
         screens.find(currentScreen)->second();
+        return Status::OK;
     } else {
-        std::cout << "No current screen to print. Current screen: " << currentScreen << std::endl;
+        std::cout << "No current screen to print. Current screen should be: " << currentScreen << std::endl;
+        return Status::CurrentNotActive;
     }
 }
 
@@ -101,8 +115,6 @@ void ScreenManager::readAndSetActiveScreens(Preferences &data, const char* name)
         String value = data.getString(std::to_string(id).c_str(), "0");
         if (value == "1"){
             activeScreens.push_back(id);
-                
-            ScreenManager::setCurrentScreen(id);
             std::cout << "[NVS] Read data: " << id << " = true" << std::endl;
         }
     }
