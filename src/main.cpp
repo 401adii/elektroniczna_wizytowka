@@ -34,11 +34,9 @@ Preferences Data;
 ScreenManager screenManager;
 
 struct ScheduleEntry {
-
-  uint8_t day;    // dni tygodnia czyli 0 => pon, 4=> pt
-  uint8_t hour;   // godzina rozpoczenia czyli 7 oznacza ze zaczyna sie o 7 a 15 ze o 15 
-  String text; // to co ma byc wpisane
-
+  uint8_t day;   // dni tygodnia czyli 0 => pon, 4=> pt
+  uint8_t hour;  // godzina rozpoczenia czyli 7 oznacza ze zaczyna sie o 7 a 15 ze o 15
+  String text;   // to co ma byc wpisane
 };
 
 ScheduleEntry schedule[] = {
@@ -63,7 +61,6 @@ String readSerialMessageBT();
 void parseAndSaveToNVS(const String& data);
 
 void setup() {
-
   // if (!SPIFFS.begin(true)) {
 
   //   Serial.println("SPIFFS initialization failed");
@@ -89,10 +86,8 @@ void setup() {
 
   // Register event handlers
   SerialBT.register_callback([](esp_spp_cb_event_t event, esp_spp_cb_param_t* param) {
-
     if (event == ESP_SPP_SRV_OPEN_EVT) onBTConnect();
     if (event == ESP_SPP_CLOSE_EVT) onBTDisconnect();
-
   });
 
   SerialBT.begin(DEVICE_NAME);
@@ -105,88 +100,75 @@ void setup() {
 }
 
 void loop() {
-
-  if(isConnected) {
-
+  if (isConnected) {
     digitalWrite(BUILTIN_LED, 1);
-    
-    if (SerialBT.available()) {
 
+    if (SerialBT.available()) {
       String receivedData = readSerialMessageBT();
       Serial.println("Received data raw: " + receivedData);
 
       /***************************************TO BE REPLACED BY ToF READING********************************/
       if (receivedData[1] != ':') {
-        if(receivedData[0] == 'n'){
+        if (receivedData[0] == 'n') {
           Serial.println("next");
-          //switch to the next active screen and print it
+          // switch to the next active screen and print it
           screenManager.nextScreen();
           screenManager.printCurrentScreen();
         }
-        if(receivedData[0] == 'p'){
+        if (receivedData[0] == 'p') {
           Serial.println("prev");
-          //switch to the prev active screen and print it
+          // switch to the prev active screen and print it
           screenManager.prevScreen();
           screenManager.printCurrentScreen();
         }
       }
       /***************************************TO BE REPLACED BY ToF READING********************************/
 
-      //Print screen info
-      if(receivedData[0] == 'i')
-        screenManager.printInfo();
+      // Print screen info
+      if (receivedData[0] == 'i') screenManager.printInfo();
 
-      if(receivedData.length() > 0) {
+      if (receivedData.length() > 0) {
         parseAndSaveToNVS(receivedData);
       }
     }
   }
 
-  if(!isConnected) {
-
-    if(ledBlink > LED_BT_CONNECTING_BLINK_PERIOD_MS) {
+  if (!isConnected) {
+    if (ledBlink > LED_BT_CONNECTING_BLINK_PERIOD_MS) {
       blinkLED();
     }
 
-    if(connectWait > BT_TIME_TO_CONNECT_MS) {
+    if (connectWait > BT_TIME_TO_CONNECT_MS) {
       startDeepSleep();
     }
-
   }
 
   if (dataUpdated) {
     screenManager.readAndSetActiveScreens(Data, DATA_STORAGE_NAME);
-    dataUpdated  = false;
-    while(screenManager.printCurrentScreen() == ScreenManager::Status::CurrentNotActive) {
+    dataUpdated = false;
+    while (screenManager.printCurrentScreen() == ScreenManager::Status::CurrentNotActive) {
       screenManager.nextScreen();
       dataUpdated = true;
     }
   }
-
 }
 
 void onBTConnect() {
-
   isConnected = true;
   Serial.println("Bluetooth device connected");
-  
 }
 
 void onBTDisconnect() {
-
   isConnected = false;
   Serial.println("Bluetooth device disconnected");
-
 }
 
 void saveStringToFlash(const String& key, const String& value) {
-
-  Data.begin(DATA_STORAGE_NAME, false);  
+  Data.begin(DATA_STORAGE_NAME, false);
   Data.putString(key.c_str(), value);
-  Data.end(); 
+  Data.end();
   Serial.println("[NVS] Saved data: " + key + " = " + value);
   dataUpdated = true;
-
 }
 
 void drawScreen0() {
@@ -367,14 +349,12 @@ void drawScreen2() {
 #endif
 }
 
-void blinkLED()
-{
+void blinkLED() {
   digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
   ledBlink = 0;
 }
 
-void startDeepSleep(){
-
+void startDeepSleep() {
   Serial.println("zzzzz...");
   connectWait = 0;
   esp_sleep_enable_timer_wakeup(DEEP_SLEEP_TIME_US);
@@ -384,59 +364,58 @@ void startDeepSleep(){
 String readSerialMessageBT() {
   String buffer;
   unsigned long startTime = millis();
-  
+
   while (millis() - startTime < SERIAL_BT_TIMEOUT) {
     while (SerialBT.available()) {
       char c = SerialBT.read();
-      
+
       if (c == '\r') {
         return buffer;
       }
-      
+
       if (buffer.length() >= MAX_BT_MESSAGE_LENGTH) {
         Serial.println("BT message too long!");
         return "";
       }
-      
+
       buffer += c;
     }
   }
-  
+
   Serial.println("Timeout waiting for BT message!");
   return "";
 }
 
 void parseAndSaveToNVS(const String& data) {
   int lineStart = 0;
-  
+
   while (lineStart < data.length()) {
     int lineEnd = data.indexOf('\n', lineStart);
-    
+
     if (lineEnd == -1) {
       lineEnd = data.length();
     }
 
     String line = data.substring(lineStart, lineEnd);
     line.trim();  // Remove leading/trailing whitespace
-    
+
     if (line.length() > 0) {
       int colonIndex = line.indexOf(':');
-      
+
       if (colonIndex != -1) {
         String key = line.substring(0, colonIndex);
         String value = line.substring(colonIndex + 1);
-        
+
         // Trim key and value in case of spaces
         key.trim();
         value.trim();
-        
+
         if (key.length() > 0 && value.length() > 0) {
-          //save to NVS
+          // save to NVS
           saveStringToFlash(key, value);
         }
       }
     }
-    
     lineStart = lineEnd + 1;  // Move to next line
   }
 }
