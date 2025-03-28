@@ -33,7 +33,6 @@ elapsedMillis connectWait;
 Preferences Data;
 ScreenManager screenManager;
 
-
 struct ScheduleEntry {
 
   uint8_t day;    // dni tygodnia czyli 0 => pon, 4=> pt
@@ -191,7 +190,6 @@ void saveStringToFlash(const String& key, const String& value) {
 }
 
 void drawScreen0() {
-
   Serial.println("Print screen 0");
 #if SCREEN_CONNECTED
   display.setFullWindow();
