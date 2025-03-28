@@ -124,7 +124,6 @@ void loop() {
           screenManager.nextScreen();
           screenManager.printCurrentScreen();
         }
-
         if(receivedData[0] == 'p'){
           Serial.println("prev");
           //switch to the prev active screen and print it
