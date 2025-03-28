@@ -1,4 +1,3 @@
-#include <vector>
 #include <GxEPD2_BW.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include <FS.h>
@@ -8,11 +7,12 @@
 #include "GxEPD2_display_selection_new_style.h"
 #include "images.h"
 #include "elapsedMillis.h"
-#include "Screen.h"
+#include "ScreenManager.h"
 
 #define PIN_ENABLE 13
 
 #define DEVICE_NAME "ESP32-BT-Test"
+#define SCREEN_CONNECTED 0 //1 podczas testow z ekranem
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
 constexpr uint32_t DEEP_SLEEP_TIME_US =  10000000;
@@ -20,21 +20,19 @@ constexpr uint16_t BT_TIME_TO_CONNECT_MS = 30000;
 constexpr uint16_t SERIAL_BT_TIMEOUT = 1000;
 constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 512;
 constexpr uint8_t MAX_ACTIVE_SCREENS = 5;
+constexpr char DATA_STORAGE_NAME[] = "storage";
 
 
 bool isConnected = false;
 bool dataUpdated = false;
-uint8_t currentScreen = 0;
-
-std::vector<Screen> Screens = {}; 
 
 BluetoothSerial SerialBT;
 elapsedMillis ledBlink;
 elapsedMillis connectWait;
 
 Preferences Data;
+ScreenManager screenManager;
 
-int8_t input;
 
 struct ScheduleEntry {
 
@@ -45,13 +43,13 @@ struct ScheduleEntry {
 };
 
 ScheduleEntry schedule[] = {
-
+/*
   {0, 14, "konsultacje"},
   {1, 12, "konsultacje"},
   {4, 11, "praca wlasna"},
   {3, 9, "praca wlasna"},
   {3, 10, "praca wlasna"}
-
+*/
 };
 
 void drawScreen0();
@@ -59,7 +57,7 @@ void drawScreen1();
 void drawScreen2();
 void onBTConnect();
 void onBTDisconnect();
-void saveDataToFlash(const String& key, const String& value);
+void saveStringToFlash(const String& key, const String& value);
 void blinkLED();
 void startDeepSleep();
 String readSerialMessageBT();
@@ -98,17 +96,13 @@ void setup() {
 
   });
 
-  Screen NameScreen(1, true, &drawScreen0);
-  Screen ScheduleScreen(2, true, &drawScreen1);
-  Screen QRScreen(3, true, &drawScreen2);
-
-  Screens.push_back(NameScreen);
-  Screens.push_back(ScheduleScreen);
-  Screens.push_back(QRScreen);
-
   SerialBT.begin(DEVICE_NAME);
   Serial.println("Waiting for BT connection...");
 
+  screenManager.addScreen(0, &drawScreen0);
+  screenManager.addScreen(1, &drawScreen1);
+  screenManager.addScreen(2, &drawScreen2);
+  screenManager.readAndSetActiveScreens(Data, DATA_STORAGE_NAME);
 }
 
 void loop() {
@@ -120,16 +114,29 @@ void loop() {
     if (SerialBT.available()) {
 
       String receivedData = readSerialMessageBT();
+      Serial.println("Received data raw: " + receivedData);
 
       /***************************************TO BE REPLACED BY ToF READING********************************/
-      if ((receivedData[0] == '1'||receivedData[0] == '2'||receivedData[0] == '3') && receivedData[1] != ':') {
-
-        input = (uint8_t)receivedData[0];
-
+      if (receivedData[1] != ':') {
+        if(receivedData[0] == 'n'){
+          Serial.println("next");
+          //switch to the next active screen and print it
+          screenManager.nextScreen();
+          screenManager.printCurrentScreen();
+        }
+        if(receivedData[0] == 'p'){
+          Serial.println("prev");
+          //switch to the prev active screen and print it
+          screenManager.prevScreen();
+          screenManager.printCurrentScreen();
+        }
       }
       /***************************************TO BE REPLACED BY ToF READING********************************/
 
-      Serial.println("Received data raw: " + receivedData);
+      //Print screen info
+      if(receivedData[0] == 'i')
+        screenManager.printInfo();
+
       if(receivedData.length() > 0) {
         parseAndSaveToNVS(receivedData);
       }
@@ -139,45 +146,22 @@ void loop() {
   if(!isConnected) {
 
     if(ledBlink > LED_BT_CONNECTING_BLINK_PERIOD_MS) {
-
       blinkLED();
     }
 
     if(connectWait > BT_TIME_TO_CONNECT_MS) {
-
       startDeepSleep();
     }
 
   }
 
   if (dataUpdated) {
-
-    input = currentScreen;
-    Screens[input].Print();
+    screenManager.readAndSetActiveScreens(Data, DATA_STORAGE_NAME);
     dataUpdated  = false;
-  }
-
-  switch (input) {
-
-    case (uint8_t)'1':
-      input = -1;
-      drawScreen0();
-      break;
-
-    case (uint8_t)'2':
-      input = -1;
-      drawScreen1();
-      break;
-
-    case (uint8_t)'3':
-      input = -1;
-      drawScreen2();
-      break;
-
-    default:
-      input = -1;
-      break;
-
+    while(screenManager.printCurrentScreen() == ScreenManager::Status::CurrentNotActive) {
+      screenManager.nextScreen();
+      dataUpdated = true;
+    }
   }
 
 }
@@ -196,9 +180,9 @@ void onBTDisconnect() {
 
 }
 
-void saveDataToFlash(const String& key, const String& value) {
+void saveStringToFlash(const String& key, const String& value) {
 
-  Data.begin("storage", false);  
+  Data.begin(DATA_STORAGE_NAME, false);  
   Data.putString(key.c_str(), value);
   Data.end(); 
   Serial.println("[NVS] Saved data: " + key + " = " + value);
@@ -208,6 +192,8 @@ void saveDataToFlash(const String& key, const String& value) {
 
 void drawScreen0() {
 
+  Serial.println("Print screen 0");
+#if SCREEN_CONNECTED
   display.setFullWindow();
   display.firstPage();
 
@@ -217,7 +203,7 @@ void drawScreen0() {
   display.fillScreen(GxEPD_WHITE);
   display.fillRect(0, 0, 800, 100, GxEPD_BLACK);
   
-  String room = Data.getString("1", "POKOJ 456");
+  String room = Data.getString("01", "POKOJ 456");
   int16_t x1, y1;
   uint16_t textWidth1, textHeight1;
   display.setTextSize(2);
@@ -227,7 +213,7 @@ void drawScreen0() {
   display.setTextColor(GxEPD_WHITE);
   display.print(room);
 
-  String name = Data.getString("2","DR INZ. KAMIL STAWIARSKI");
+  String name = Data.getString("02","DR INZ. KAMIL STAWIARSKI");
   int16_t x2, y2;
   uint16_t textWidth2, textHeight2;
   display.setTextSize(3);
@@ -237,7 +223,7 @@ void drawScreen0() {
   display.setTextColor(GxEPD_BLACK);
   display.print(name);
 
-  String tel = Data.getString("3","tel. 123 456 789");
+  String tel = Data.getString("03","tel. 123 456 789");
   int16_t x3, y3;
   uint16_t textWidth3, textHeight3;
   display.setTextSize(2);
@@ -246,7 +232,7 @@ void drawScreen0() {
   display.setCursor(centerX3, 300);
   display.print(tel);
 
-  String mail = Data.getString("4","kamil.stawiarski@pg.edu.pl");
+  String mail = Data.getString("04","kamil.stawiarski@pg.edu.pl");
   int16_t x4, y4;
   uint16_t textWidth4, textHeight4;
   display.setTextSize(2);
@@ -259,85 +245,110 @@ void drawScreen0() {
 
   } while (display.nextPage());
 
-  currentScreen = 0;
-  Serial.println("Print screen 1");
-
+#endif
 }
 
 void drawScreen1() {
-
+  Serial.println("Print screen 1");
+#if SCREEN_CONNECTED
   display.setTextSize(1);
-  const int startHour = 7;  
-  const int endHour = 18; 
-  const int numHours = endHour - startHour;
+  display.setFont(&FreeMonoBold9pt7b);
 
-  const int screenWidth = display.width(); 
-  const int screenHeight = display.height(); 
+  // Odczyt konfiguracji z NVS
+  Data.begin(DATA_STORAGE_NAME, true);
+  int numCols = Data.getString("1x", "3").toInt();
+  int numRows = Data.getString("1y", "5").toInt();
+  numCols = constrain(numCols, 1, 20);
+  numRows = constrain(numRows, 1, 20);
 
-  const int gridXOffset = 80; 
-  const int gridYOffset = 40; 
-
-  const int colWidth = (screenWidth - gridXOffset) / 5; 
-  const int rowHeight = (screenHeight - gridYOffset) / numHours; 
-
-  const char* daysOfWeek[] = {"Pon", "Wt", "Sr", "Czw", "Pt"};
-  const int numDays = 5; 
+  // Obliczenia geometryczne
+  const int screenWidth = display.width();
+  const int screenHeight = display.height();
+  const int gridXOffset = 100;
+  const int gridYOffset = 50;
+  const int colWidth = (screenWidth - gridXOffset) / numCols;
+  const int rowHeight = (screenHeight - gridYOffset) / numRows;
 
   display.setFullWindow();
   display.firstPage();
 
   do {
+    display.fillScreen(GxEPD_WHITE);
 
-  display.fillScreen(GxEPD_WHITE); 
-  
-  for (int i = 0; i < numDays; i++) {
-    int x = gridXOffset + i * colWidth; 
-    display.drawRect(x, 0, colWidth, gridYOffset, GxEPD_BLACK); 
-    display.setCursor(x + colWidth / 4, gridYOffset / 2); 
-    display.print(daysOfWeek[i]);
-  }
-  
-  for (int hour = startHour; hour < endHour; hour++) {
-    int y = gridYOffset + (hour - startHour) * rowHeight;
-
-    
-    display.drawRect(0, y, gridXOffset, rowHeight, GxEPD_BLACK); 
-    display.setCursor(10, y + rowHeight / 2); 
-    String timeRange = String(hour) + "-" + String(hour + 1);
-    display.print(timeRange);
-
-    
-    for (int i = 0; i < numDays; i++) {
-
-      int x = gridXOffset + i * colWidth; 
-      display.drawRect(x, y, colWidth, rowHeight, GxEPD_BLACK); 
-
+    // Nagłówki kolumn
+    for (int col = 0; col < numCols; col++) {
+      int x = gridXOffset + col * colWidth;
+      display.drawRect(x, 0, colWidth, gridYOffset, GxEPD_BLACK);
+      
+      // Pobierz tekst nagłówka kolumny
+      String headerKey = "1hC" + String(col+1);
+      String headerText = Data.getString(headerKey.c_str(),String(col+1));
+      
+      // Oblicz pozycję tekstu
+      int16_t x1, y1;
+      uint16_t w, h;
+      display.getTextBounds(headerText, 0, 0, &x1, &y1, &w, &h);
+      int textX = x + (colWidth - w)/2 - x1;
+      int textY = (gridYOffset - h)/2 - y1;
+      
+      display.setCursor(textX, textY);
+      display.print(headerText);
     }
 
-  }
+    // Wiersze i komórki
+    for (int row = 0; row < numRows; row++) {
+      int y = gridYOffset + row * rowHeight;
+      
+      // Nagłówek wiersza
+      display.drawRect(0, y, gridXOffset, rowHeight, GxEPD_BLACK);
+      
+      // Pobierz tekst nagłówka wiersza
+      String rowKey = "1hR" + String(row+1);
+      String rowText = Data.getString(rowKey.c_str(),String(row+1));
+      
+      // Oblicz pozycję tekstu
+      int16_t x1, y1;
+      uint16_t w, h;
+      display.getTextBounds(rowText, 0, 0, &x1, &y1, &w, &h);
+      int textX = (gridXOffset - w)/2 - x1;
+      int textY = y + (rowHeight - h)/2 - y1;
+      
+      display.setCursor(textX, textY);
+      display.print(rowText);
 
-  for (const auto& entry : schedule) {
-
-    if (entry.hour >= startHour && entry.hour < endHour && entry.day >= 0 && entry.day < numDays) {
-
-      int x = gridXOffset + entry.day * colWidth + 5; 
-      int y = gridYOffset + (entry.hour - startHour) * rowHeight + 20; 
-
-      display.setCursor(x, y);
-      display.print(entry.text);
-
+      // Komórki danych
+      for (int col = 0; col < numCols; col++) {
+        int x = gridXOffset + col * colWidth;
+        display.drawRect(x, y, colWidth, rowHeight, GxEPD_BLACK);
+        
+        // Pobierz dane komórki
+        String cellKey = "1" + String(col+1) + String(row+1);
+        String cellValue = Data.getString(cellKey.c_str(), "");
+        
+        if(cellValue.length() > 0) {
+          // Oblicz pozycję tekstu
+          int16_t x1_val, y1_val;
+          uint16_t w_val, h_val;
+          display.getTextBounds(cellValue, 0, 0, &x1_val, &y1_val, &w_val, &h_val);
+          int textX_val = x + (colWidth - w_val)/2 - x1_val;
+          int textY_val = y + (rowHeight - h_val)/2 - y1_val;
+          
+          display.setCursor(textX_val, textY_val);
+          display.print(cellValue);
+        }
+      }
     }
 
-  }
   } while (display.nextPage());
-
-  currentScreen = 1;
-  Serial.println("Print screen 2");
-
+  
+  Data.end();
+#endif
 }
 
 void drawScreen2() {
 
+  Serial.println("Print screen 2");
+#if SCREEN_CONNECTED
   display.setFullWindow();
   display.firstPage();
 
@@ -355,10 +366,7 @@ void drawScreen2() {
   display.setTextSize(2);
   display.print("Most wiedzy");
   } while(display.nextPage());
-
-  currentScreen = 2;
-  Serial.println("Print screen 3");
-
+#endif
 }
 
 void blinkLED()
@@ -426,7 +434,7 @@ void parseAndSaveToNVS(const String& data) {
         
         if (key.length() > 0 && value.length() > 0) {
           //save to NVS
-          saveDataToFlash(key, value);
+          saveStringToFlash(key, value);
         }
       }
     }
