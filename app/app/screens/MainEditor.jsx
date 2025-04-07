@@ -79,7 +79,6 @@ const MainEditor = ({navigation, route}) => {
     <View className='flex-1 items-center justify-center p-4 gap-4'>
       <Button onPress={() => navigation.navigate('CredentialsEditor')} text='1'/>
       <Button onPress={() => navigation.navigate('ScheduleEditor')} text='2'/>
-      <Button onPress={() => setData('3')} text='3'/>
       <Button onPress={() => navigation.goBack()} text='change device'/>
       <Button onPress={() => setBtFlag(true)} text='send data'/>
       {btFlag ? <EnableBluetooth onEnabled={() => {setBtFlag(false); handleSendData();}}/> : null }
