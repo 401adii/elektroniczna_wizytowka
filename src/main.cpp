@@ -8,11 +8,12 @@
 #include "images.h"
 #include "elapsedMillis.h"
 #include "ScreenManager.h"
+#include "qrcodegen.h"
 
 #define PIN_ENABLE 13
 
-#define DEVICE_NAME "ESP32-BT-Test"
-#define SCREEN_CONNECTED 0 //1 podczas testow z ekranem
+#define DEVICE_NAME "E-wizytowka"
+#define SCREEN_CONNECTED 1 //1 podczas testow z ekranem
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
 constexpr uint32_t DEEP_SLEEP_TIME_US =  10000000;
@@ -62,6 +63,11 @@ void blinkLED();
 void startDeepSleep();
 String readSerialMessageBT();
 void parseAndSaveToNVS(const String& data);
+
+static uint8_t qrcodeTemp[qrcodegen_BUFFER_LEN_MAX];
+static uint8_t qrcodeData[qrcodegen_BUFFER_LEN_MAX];
+void drawQRCode(const char* text, int16_t x, int16_t y);
+
 
 void setup() {
 
@@ -255,14 +261,12 @@ void drawScreen1() {
   display.setTextSize(1);
   display.setFont(&FreeMonoBold9pt7b);
 
-  // Odczyt konfiguracji z NVS
   Data.begin(DATA_STORAGE_NAME, true);
   int numCols = Data.getString("1x", "3").toInt();
   int numRows = Data.getString("1y", "5").toInt();
   numCols = constrain(numCols, 1, 20);
   numRows = constrain(numRows, 1, 20);
 
-  // Obliczenia geometryczne
   const int screenWidth = display.width();
   const int screenHeight = display.height();
   const int gridXOffset = 100;
@@ -276,16 +280,13 @@ void drawScreen1() {
   do {
     display.fillScreen(GxEPD_WHITE);
 
-    // Nagłówki kolumn
     for (int col = 0; col < numCols; col++) {
       int x = gridXOffset + col * colWidth;
       display.drawRect(x, 0, colWidth, gridYOffset, GxEPD_BLACK);
       
-      // Pobierz tekst nagłówka kolumny
       String headerKey = "1hC" + String(col+1);
       String headerText = Data.getString(headerKey.c_str(),String(col+1));
-      
-      // Oblicz pozycję tekstu
+
       int16_t x1, y1;
       uint16_t w, h;
       display.getTextBounds(headerText, 0, 0, &x1, &y1, &w, &h);
@@ -357,15 +358,25 @@ void drawScreen2() {
 
   display.fillScreen(GxEPD_WHITE);
 
+  /*
   display.drawXBitmap(50, 50,obrazek1, 300, 300, GxEPD_BLACK);
-  display.setCursor(110, 400);
-  display.setTextSize(2);
-  display.print("Kanal YT");
-
   display.drawXBitmap(400, 50,obrazek1, 300, 300, GxEPD_BLACK);
-  display.setCursor(430, 400);
-  display.setTextSize(2);
-  display.print("Most wiedzy");
+ */
+
+  Data.begin(DATA_STORAGE_NAME, true);
+  String link1 = Data.getString("link1", "https://example.com/1");
+  String link2 = Data.getString("link2", "https://example.com/2");
+  
+
+    drawQRCode(link1.c_str(),  50,  50);   // lewy 
+    display.setCursor(110, 400);
+    display.setTextSize(2);
+    display.print(Data.getString("tekst1", "napis1"));
+    drawQRCode(link2.c_str(), 460,  50);   // prawy 
+    display.setCursor(430, 400);
+    display.setTextSize(2);
+    display.print(Data.getString("tekst2", "napis2"));
+    Data.end();
   } while(display.nextPage());
 #endif
 }
@@ -441,5 +452,39 @@ void parseAndSaveToNVS(const String& data) {
     }
     
     lineStart = lineEnd + 1;  // Move to next line
+  }
+}
+
+void drawQRCode(const char* text, int16_t x, int16_t y) {
+  bool ok = qrcodegen_encodeText(
+    text,
+    qrcodeTemp,        
+    qrcodeData,           
+    qrcodegen_Ecc_LOW,     
+    qrcodegen_VERSION_MIN, 
+    qrcodegen_VERSION_MAX,
+    qrcodegen_Mask_AUTO, 
+    true                
+  );
+  if (!ok) {
+    Serial.println("QR encode error");
+    return;
+  }
+
+  int size = qrcodegen_getSize(qrcodeData);
+
+  int moduleSize = ceilf(300.0f / size); // tu zeby qr byl 300x300
+
+  for (int row = 0; row < size; row++) {
+    for (int col = 0; col < size; col++) {
+      if (qrcodegen_getModule(qrcodeData, col, row)) {
+        display.fillRect(
+          x + col * moduleSize,
+          y + row * moduleSize,
+          moduleSize, moduleSize,
+          GxEPD_BLACK
+        );
+      }
+    }
   }
 }
