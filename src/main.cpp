@@ -34,10 +34,8 @@ Preferences Data;
 ScreenManager screenManager;
 
 struct ScheduleEntry {
-
   uint8_t day;  // dni tygodnia czyli 0 => pon, 4=> pt
-  uint8_t hour; // godzina rozpoczenia czyli 7 oznacza ze zaczyna sie o 7 a 15
-                // ze o 15
+  uint8_t hour; // godzina rozpoczecia
   String text;  // to co ma byc wpisane
 };
 
@@ -67,7 +65,6 @@ static uint8_t qrcodeData[qrcodegen_BUFFER_LEN_MAX];
 void drawQRCode(const char *text, int16_t x, int16_t y);
 
 void setup() {
-
   // if (!SPIFFS.begin(true)) {
 
   //   Serial.println("SPIFFS initialization failed");
@@ -92,13 +89,10 @@ void setup() {
   digitalWrite(LED_BUILTIN, 0);
 
   // Register event handlers
-  SerialBT.register_callback(
-      [](esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
-        if (event == ESP_SPP_SRV_OPEN_EVT)
-          onBTConnect();
-        if (event == ESP_SPP_CLOSE_EVT)
-          onBTDisconnect();
-      });
+  SerialBT.register_callback([](esp_spp_cb_event_t event, esp_spp_cb_param_t* param) {
+    if (event == ESP_SPP_SRV_OPEN_EVT) onBTConnect();
+    if (event == ESP_SPP_CLOSE_EVT) onBTDisconnect();
+  });
 
   SerialBT.begin(DEVICE_NAME);
   Serial.println("Waiting for BT connection...");
@@ -110,13 +104,10 @@ void setup() {
 }
 
 void loop() {
-
   if (isConnected) {
-
     digitalWrite(BUILTIN_LED, 1);
 
     if (SerialBT.available()) {
-
       String receivedData = readSerialMessageBT();
       Serial.println("Received data raw: " + receivedData);
 
@@ -141,8 +132,7 @@ void loop() {
        * READING********************************/
 
       // Print screen info
-      if (receivedData[0] == 'i')
-        screenManager.printInfo();
+      if (receivedData[0] == 'i') screenManager.printInfo();
 
       if (receivedData.length() > 0) {
         parseAndSaveToNVS(receivedData);
@@ -151,7 +141,6 @@ void loop() {
   }
 
   if (!isConnected) {
-
     if (ledBlink > LED_BT_CONNECTING_BLINK_PERIOD_MS) {
       blinkLED();
     }
@@ -164,8 +153,7 @@ void loop() {
   if (dataUpdated) {
     screenManager.readAndSetActiveScreens(Data, DATA_STORAGE_NAME);
     dataUpdated = false;
-    while (screenManager.printCurrentScreen() ==
-           ScreenManager::Status::CurrentNotActive) {
+    while (screenManager.printCurrentScreen() == ScreenManager::Status::CurrentNotActive) {
       screenManager.nextScreen();
       dataUpdated = true;
     }
@@ -173,19 +161,16 @@ void loop() {
 }
 
 void onBTConnect() {
-
   isConnected = true;
   Serial.println("Bluetooth device connected");
 }
 
 void onBTDisconnect() {
-
   isConnected = false;
   Serial.println("Bluetooth device disconnected");
 }
 
-void saveStringToFlash(const String &key, const String &value) {
-
+void saveStringToFlash(const String& key, const String& value) {
   Data.begin(DATA_STORAGE_NAME, false);
   Data.putString(key.c_str(), value);
   Data.end();
@@ -194,7 +179,6 @@ void saveStringToFlash(const String &key, const String &value) {
 }
 
 void drawScreen0() {
-
   Serial.println("Print screen 0");
 #if SCREEN_CONNECTED
   display.setFullWindow();
@@ -383,7 +367,6 @@ void blinkLED() {
 }
 
 void startDeepSleep() {
-
   Serial.println("zzzzz...");
   connectWait = 0;
   esp_sleep_enable_timer_wakeup(DEEP_SLEEP_TIME_US);
@@ -426,7 +409,7 @@ void parseAndSaveToNVS(const String &data) {
     }
 
     String line = data.substring(lineStart, lineEnd);
-    line.trim(); // Remove leading/trailing whitespace
+    line.trim();  // Remove leading/trailing whitespace
 
     if (line.length() > 0) {
       int colonIndex = line.indexOf(':');
@@ -445,7 +428,6 @@ void parseAndSaveToNVS(const String &data) {
         }
       }
     }
-
     lineStart = lineEnd + 1; // Move to next line
   }
 }
