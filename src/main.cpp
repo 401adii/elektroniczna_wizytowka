@@ -1,28 +1,27 @@
-#include <GxEPD2_BW.h>
-#include <Fonts/FreeMonoBold9pt7b.h>
-#include <FS.h>
-#include <SPIFFS.h>
-#include <BluetoothSerial.h>
-#include <Preferences.h>
 #include "GxEPD2_display_selection_new_style.h"
-#include "images.h"
-#include "elapsedMillis.h"
 #include "ScreenManager.h"
+#include "elapsedMillis.h"
+#include "images.h"
 #include "qrcodegen.h"
+#include <BluetoothSerial.h>
+#include <FS.h>
+#include <Fonts/FreeMonoBold9pt7b.h>
+#include <GxEPD2_BW.h>
+#include <Preferences.h>
+#include <SPIFFS.h>
 
 #define PIN_ENABLE 13
 
 #define DEVICE_NAME "E-wizytowka"
-#define SCREEN_CONNECTED 1 //1 podczas testow z ekranem
+#define SCREEN_CONNECTED 1 // 1 podczas testow z ekranem
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
-constexpr uint32_t DEEP_SLEEP_TIME_US =  10000000;
+constexpr uint32_t DEEP_SLEEP_TIME_US = 10000000;
 constexpr uint16_t BT_TIME_TO_CONNECT_MS = 30000;
 constexpr uint16_t SERIAL_BT_TIMEOUT = 1000;
 constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 512;
 constexpr uint8_t MAX_ACTIVE_SCREENS = 5;
 constexpr char DATA_STORAGE_NAME[] = "storage";
-
 
 bool isConnected = false;
 bool dataUpdated = false;
@@ -34,23 +33,22 @@ elapsedMillis connectWait;
 Preferences Data;
 ScreenManager screenManager;
 
-
 struct ScheduleEntry {
 
-  uint8_t day;    // dni tygodnia czyli 0 => pon, 4=> pt
-  uint8_t hour;   // godzina rozpoczenia czyli 7 oznacza ze zaczyna sie o 7 a 15 ze o 15 
-  String text; // to co ma byc wpisane
-
+  uint8_t day;  // dni tygodnia czyli 0 => pon, 4=> pt
+  uint8_t hour; // godzina rozpoczenia czyli 7 oznacza ze zaczyna sie o 7 a 15
+                // ze o 15
+  String text;  // to co ma byc wpisane
 };
 
 ScheduleEntry schedule[] = {
-/*
-  {0, 14, "konsultacje"},
-  {1, 12, "konsultacje"},
-  {4, 11, "praca wlasna"},
-  {3, 9, "praca wlasna"},
-  {3, 10, "praca wlasna"}
-*/
+    /*
+      {0, 14, "konsultacje"},
+      {1, 12, "konsultacje"},
+      {4, 11, "praca wlasna"},
+      {3, 9, "praca wlasna"},
+      {3, 10, "praca wlasna"}
+    */
 };
 
 void drawScreen0();
@@ -58,16 +56,15 @@ void drawScreen1();
 void drawScreen2();
 void onBTConnect();
 void onBTDisconnect();
-void saveStringToFlash(const String& key, const String& value);
+void saveStringToFlash(const String &key, const String &value);
 void blinkLED();
 void startDeepSleep();
 String readSerialMessageBT();
-void parseAndSaveToNVS(const String& data);
+void parseAndSaveToNVS(const String &data);
 
 static uint8_t qrcodeTemp[qrcodegen_BUFFER_LEN_MAX];
 static uint8_t qrcodeData[qrcodegen_BUFFER_LEN_MAX];
-void drawQRCode(const char* text, int16_t x, int16_t y);
-
+void drawQRCode(const char *text, int16_t x, int16_t y);
 
 void setup() {
 
@@ -95,12 +92,13 @@ void setup() {
   digitalWrite(LED_BUILTIN, 0);
 
   // Register event handlers
-  SerialBT.register_callback([](esp_spp_cb_event_t event, esp_spp_cb_param_t* param) {
-
-    if (event == ESP_SPP_SRV_OPEN_EVT) onBTConnect();
-    if (event == ESP_SPP_CLOSE_EVT) onBTDisconnect();
-
-  });
+  SerialBT.register_callback(
+      [](esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
+        if (event == ESP_SPP_SRV_OPEN_EVT)
+          onBTConnect();
+        if (event == ESP_SPP_CLOSE_EVT)
+          onBTDisconnect();
+      });
 
   SerialBT.begin(DEVICE_NAME);
   Serial.println("Waiting for BT connection...");
@@ -113,88 +111,86 @@ void setup() {
 
 void loop() {
 
-  if(isConnected) {
+  if (isConnected) {
 
     digitalWrite(BUILTIN_LED, 1);
-    
+
     if (SerialBT.available()) {
 
       String receivedData = readSerialMessageBT();
       Serial.println("Received data raw: " + receivedData);
 
-      /***************************************TO BE REPLACED BY ToF READING********************************/
+      /***************************************TO BE REPLACED BY ToF
+       * READING********************************/
       if (receivedData[1] != ':') {
-        if(receivedData[0] == 'n'){
+        if (receivedData[0] == 'n') {
           Serial.println("next");
-          //switch to the next active screen and print it
+          // switch to the next active screen and print it
           screenManager.nextScreen();
           screenManager.printCurrentScreen();
         }
 
-        if(receivedData[0] == 'p'){
+        if (receivedData[0] == 'p') {
           Serial.println("prev");
-          //switch to the prev active screen and print it
+          // switch to the prev active screen and print it
           screenManager.prevScreen();
           screenManager.printCurrentScreen();
         }
       }
-      /***************************************TO BE REPLACED BY ToF READING********************************/
+      /***************************************TO BE REPLACED BY ToF
+       * READING********************************/
 
-      //Print screen info
-      if(receivedData[0] == 'i')
+      // Print screen info
+      if (receivedData[0] == 'i')
         screenManager.printInfo();
 
-      if(receivedData.length() > 0) {
+      if (receivedData.length() > 0) {
         parseAndSaveToNVS(receivedData);
       }
     }
   }
 
-  if(!isConnected) {
+  if (!isConnected) {
 
-    if(ledBlink > LED_BT_CONNECTING_BLINK_PERIOD_MS) {
+    if (ledBlink > LED_BT_CONNECTING_BLINK_PERIOD_MS) {
       blinkLED();
     }
 
-    if(connectWait > BT_TIME_TO_CONNECT_MS) {
+    if (connectWait > BT_TIME_TO_CONNECT_MS) {
       startDeepSleep();
     }
-
   }
 
   if (dataUpdated) {
     screenManager.readAndSetActiveScreens(Data, DATA_STORAGE_NAME);
-    dataUpdated  = false;
-    while(screenManager.printCurrentScreen() == ScreenManager::Status::CurrentNotActive) {
+    dataUpdated = false;
+    while (screenManager.printCurrentScreen() ==
+           ScreenManager::Status::CurrentNotActive) {
       screenManager.nextScreen();
       dataUpdated = true;
     }
   }
-
 }
 
 void onBTConnect() {
 
   isConnected = true;
   Serial.println("Bluetooth device connected");
-  
 }
 
 void onBTDisconnect() {
 
   isConnected = false;
   Serial.println("Bluetooth device disconnected");
-
 }
 
-void saveStringToFlash(const String& key, const String& value) {
+void saveStringToFlash(const String &key, const String &value) {
 
-  Data.begin(DATA_STORAGE_NAME, false);  
+  Data.begin(DATA_STORAGE_NAME, false);
   Data.putString(key.c_str(), value);
-  Data.end(); 
+  Data.end();
   Serial.println("[NVS] Saved data: " + key + " = " + value);
   dataUpdated = true;
-
 }
 
 void drawScreen0() {
@@ -206,49 +202,49 @@ void drawScreen0() {
 
   do {
 
-  Data.begin("storage", true);
-  display.fillScreen(GxEPD_WHITE);
-  display.fillRect(0, 0, 800, 100, GxEPD_BLACK);
-  
-  String room = Data.getString("01", "POKOJ 456");
-  int16_t x1, y1;
-  uint16_t textWidth1, textHeight1;
-  display.setTextSize(2);
-  display.getTextBounds(room, 0, 0, &x1, &y1, &textWidth1, &textHeight1);
-  int centerX = (display.width() - textWidth1) / 2;
-  display.setCursor(centerX, 60);
-  display.setTextColor(GxEPD_WHITE);
-  display.print(room);
+    Data.begin("storage", true);
+    display.fillScreen(GxEPD_WHITE);
+    display.fillRect(0, 0, 800, 100, GxEPD_BLACK);
 
-  String name = Data.getString("02","DR INZ. KAMIL STAWIARSKI");
-  int16_t x2, y2;
-  uint16_t textWidth2, textHeight2;
-  display.setTextSize(3);
-  display.getTextBounds(name, 0, 0, &x2, &y2, &textWidth2, &textHeight2);
-  int centerX2 = (display.width() - textWidth2) / 2;
-  display.setCursor(centerX2, 200);
-  display.setTextColor(GxEPD_BLACK);
-  display.print(name);
+    String room = Data.getString("01", "POKOJ 456");
+    int16_t x1, y1;
+    uint16_t textWidth1, textHeight1;
+    display.setTextSize(2);
+    display.getTextBounds(room, 0, 0, &x1, &y1, &textWidth1, &textHeight1);
+    int centerX = (display.width() - textWidth1) / 2;
+    display.setCursor(centerX, 60);
+    display.setTextColor(GxEPD_WHITE);
+    display.print(room);
 
-  String tel = Data.getString("03","tel. 123 456 789");
-  int16_t x3, y3;
-  uint16_t textWidth3, textHeight3;
-  display.setTextSize(2);
-  display.getTextBounds(tel, 0, 0, &x3, &y3, &textWidth3, &textHeight3);
-  int centerX3 = (display.width() - textWidth3) / 2;
-  display.setCursor(centerX3, 300);
-  display.print(tel);
+    String name = Data.getString("02", "DR INZ. KAMIL STAWIARSKI");
+    int16_t x2, y2;
+    uint16_t textWidth2, textHeight2;
+    display.setTextSize(3);
+    display.getTextBounds(name, 0, 0, &x2, &y2, &textWidth2, &textHeight2);
+    int centerX2 = (display.width() - textWidth2) / 2;
+    display.setCursor(centerX2, 200);
+    display.setTextColor(GxEPD_BLACK);
+    display.print(name);
 
-  String mail = Data.getString("04","kamil.stawiarski@pg.edu.pl");
-  int16_t x4, y4;
-  uint16_t textWidth4, textHeight4;
-  display.setTextSize(2);
-  display.getTextBounds(mail, 0, 0, &x4, &y4, &textWidth4, &textHeight4);
-  int centerX4 = (display.width() - textWidth4) / 2;
-  display.setCursor(centerX4, 400);
-  display.print(mail);
+    String tel = Data.getString("03", "tel. 123 456 789");
+    int16_t x3, y3;
+    uint16_t textWidth3, textHeight3;
+    display.setTextSize(2);
+    display.getTextBounds(tel, 0, 0, &x3, &y3, &textWidth3, &textHeight3);
+    int centerX3 = (display.width() - textWidth3) / 2;
+    display.setCursor(centerX3, 300);
+    display.print(tel);
 
-  Data.end();
+    String mail = Data.getString("04", "kamil.stawiarski@pg.edu.pl");
+    int16_t x4, y4;
+    uint16_t textWidth4, textHeight4;
+    display.setTextSize(2);
+    display.getTextBounds(mail, 0, 0, &x4, &y4, &textWidth4, &textHeight4);
+    int centerX4 = (display.width() - textWidth4) / 2;
+    display.setCursor(centerX4, 400);
+    display.print(mail);
+
+    Data.end();
 
   } while (display.nextPage());
 
@@ -283,16 +279,16 @@ void drawScreen1() {
     for (int col = 0; col < numCols; col++) {
       int x = gridXOffset + col * colWidth;
       display.drawRect(x, 0, colWidth, gridYOffset, GxEPD_BLACK);
-      
-      String headerKey = "1hC" + String(col+1);
-      String headerText = Data.getString(headerKey.c_str(),String(col+1));
+
+      String headerKey = "1hC" + String(col + 1);
+      String headerText = Data.getString(headerKey.c_str(), String(col + 1));
 
       int16_t x1, y1;
       uint16_t w, h;
       display.getTextBounds(headerText, 0, 0, &x1, &y1, &w, &h);
-      int textX = x + (colWidth - w)/2 - x1;
-      int textY = (gridYOffset - h)/2 - y1;
-      
+      int textX = x + (colWidth - w) / 2 - x1;
+      int textY = (gridYOffset - h) / 2 - y1;
+
       display.setCursor(textX, textY);
       display.print(headerText);
     }
@@ -300,21 +296,21 @@ void drawScreen1() {
     // Wiersze i komórki
     for (int row = 0; row < numRows; row++) {
       int y = gridYOffset + row * rowHeight;
-      
+
       // Nagłówek wiersza
       display.drawRect(0, y, gridXOffset, rowHeight, GxEPD_BLACK);
-      
+
       // Pobierz tekst nagłówka wiersza
-      String rowKey = "1hR" + String(row+1);
-      String rowText = Data.getString(rowKey.c_str(),String(row+1));
-      
+      String rowKey = "1hR" + String(row + 1);
+      String rowText = Data.getString(rowKey.c_str(), String(row + 1));
+
       // Oblicz pozycję tekstu
       int16_t x1, y1;
       uint16_t w, h;
       display.getTextBounds(rowText, 0, 0, &x1, &y1, &w, &h);
-      int textX = (gridXOffset - w)/2 - x1;
-      int textY = y + (rowHeight - h)/2 - y1;
-      
+      int textX = (gridXOffset - w) / 2 - x1;
+      int textY = y + (rowHeight - h) / 2 - y1;
+
       display.setCursor(textX, textY);
       display.print(rowText);
 
@@ -322,19 +318,20 @@ void drawScreen1() {
       for (int col = 0; col < numCols; col++) {
         int x = gridXOffset + col * colWidth;
         display.drawRect(x, y, colWidth, rowHeight, GxEPD_BLACK);
-        
+
         // Pobierz dane komórki
-        String cellKey = "1" + String(col+1) + String(row+1);
+        String cellKey = "1" + String(col + 1) + String(row + 1);
         String cellValue = Data.getString(cellKey.c_str(), "");
-        
-        if(cellValue.length() > 0) {
+
+        if (cellValue.length() > 0) {
           // Oblicz pozycję tekstu
           int16_t x1_val, y1_val;
           uint16_t w_val, h_val;
-          display.getTextBounds(cellValue, 0, 0, &x1_val, &y1_val, &w_val, &h_val);
-          int textX_val = x + (colWidth - w_val)/2 - x1_val;
-          int textY_val = y + (rowHeight - h_val)/2 - y1_val;
-          
+          display.getTextBounds(cellValue, 0, 0, &x1_val, &y1_val, &w_val,
+                                &h_val);
+          int textX_val = x + (colWidth - w_val) / 2 - x1_val;
+          int textY_val = y + (rowHeight - h_val) / 2 - y1_val;
+
           display.setCursor(textX_val, textY_val);
           display.print(cellValue);
         }
@@ -342,7 +339,7 @@ void drawScreen1() {
     }
 
   } while (display.nextPage());
-  
+
   Data.end();
 #endif
 }
@@ -356,38 +353,36 @@ void drawScreen2() {
 
   do {
 
-  display.fillScreen(GxEPD_WHITE);
+    display.fillScreen(GxEPD_WHITE);
 
-  /*
-  display.drawXBitmap(50, 50,obrazek1, 300, 300, GxEPD_BLACK);
-  display.drawXBitmap(400, 50,obrazek1, 300, 300, GxEPD_BLACK);
- */
+    /*
+    display.drawXBitmap(50, 50,obrazek1, 300, 300, GxEPD_BLACK);
+    display.drawXBitmap(400, 50,obrazek1, 300, 300, GxEPD_BLACK);
+   */
 
-  Data.begin(DATA_STORAGE_NAME, true);
-  String link1 = Data.getString("link1", "https://example.com/1");
-  String link2 = Data.getString("link2", "https://example.com/2");
-  
+    Data.begin(DATA_STORAGE_NAME, true);
+    String link1 = Data.getString("link1", "https://example.com/1");
+    String link2 = Data.getString("link2", "https://example.com/2");
 
-    drawQRCode(link1.c_str(),  50,  50);   // lewy 
+    drawQRCode(link1.c_str(), 50, 50); // lewy
     display.setCursor(110, 400);
     display.setTextSize(2);
     display.print(Data.getString("tekst1", "napis1"));
-    drawQRCode(link2.c_str(), 460,  50);   // prawy 
+    drawQRCode(link2.c_str(), 460, 50); // prawy
     display.setCursor(430, 400);
     display.setTextSize(2);
     display.print(Data.getString("tekst2", "napis2"));
     Data.end();
-  } while(display.nextPage());
+  } while (display.nextPage());
 #endif
 }
 
-void blinkLED()
-{
+void blinkLED() {
   digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
   ledBlink = 0;
 }
 
-void startDeepSleep(){
+void startDeepSleep() {
 
   Serial.println("zzzzz...");
   connectWait = 0;
@@ -398,74 +393,67 @@ void startDeepSleep(){
 String readSerialMessageBT() {
   String buffer;
   unsigned long startTime = millis();
-  
+
   while (millis() - startTime < SERIAL_BT_TIMEOUT) {
     while (SerialBT.available()) {
       char c = SerialBT.read();
-      
+
       if (c == '\r') {
         return buffer;
       }
-      
+
       if (buffer.length() >= MAX_BT_MESSAGE_LENGTH) {
         Serial.println("BT message too long!");
         return "";
       }
-      
+
       buffer += c;
     }
   }
-  
+
   Serial.println("Timeout waiting for BT message!");
   return "";
 }
 
-void parseAndSaveToNVS(const String& data) {
+void parseAndSaveToNVS(const String &data) {
   int lineStart = 0;
-  
+
   while (lineStart < data.length()) {
     int lineEnd = data.indexOf('\n', lineStart);
-    
+
     if (lineEnd == -1) {
       lineEnd = data.length();
     }
 
     String line = data.substring(lineStart, lineEnd);
-    line.trim();  // Remove leading/trailing whitespace
-    
+    line.trim(); // Remove leading/trailing whitespace
+
     if (line.length() > 0) {
       int colonIndex = line.indexOf(':');
-      
+
       if (colonIndex != -1) {
         String key = line.substring(0, colonIndex);
         String value = line.substring(colonIndex + 1);
-        
+
         // Trim key and value in case of spaces
         key.trim();
         value.trim();
-        
+
         if (key.length() > 0 && value.length() > 0) {
-          //save to NVS
+          // save to NVS
           saveStringToFlash(key, value);
         }
       }
     }
-    
-    lineStart = lineEnd + 1;  // Move to next line
+
+    lineStart = lineEnd + 1; // Move to next line
   }
 }
 
-void drawQRCode(const char* text, int16_t x, int16_t y) {
+void drawQRCode(const char *text, int16_t x, int16_t y) {
   bool ok = qrcodegen_encodeText(
-    text,
-    qrcodeTemp,        
-    qrcodeData,           
-    qrcodegen_Ecc_LOW,     
-    qrcodegen_VERSION_MIN, 
-    qrcodegen_VERSION_MAX,
-    qrcodegen_Mask_AUTO, 
-    true                
-  );
+      text, qrcodeTemp, qrcodeData, qrcodegen_Ecc_LOW, qrcodegen_VERSION_MIN,
+      qrcodegen_VERSION_MAX, qrcodegen_Mask_AUTO, true);
   if (!ok) {
     Serial.println("QR encode error");
     return;
@@ -478,12 +466,8 @@ void drawQRCode(const char* text, int16_t x, int16_t y) {
   for (int row = 0; row < size; row++) {
     for (int col = 0; col < size; col++) {
       if (qrcodegen_getModule(qrcodeData, col, row)) {
-        display.fillRect(
-          x + col * moduleSize,
-          y + row * moduleSize,
-          moduleSize, moduleSize,
-          GxEPD_BLACK
-        );
+        display.fillRect(x + col * moduleSize, y + row * moduleSize, moduleSize,
+                         moduleSize, GxEPD_BLACK);
       }
     }
   }
