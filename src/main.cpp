@@ -1,8 +1,3 @@
-#include "GxEPD2_display_selection_new_style.h"
-#include "ScreenManager.h"
-#include "elapsedMillis.h"
-#include "images.h"
-#include "qrcodegen.h"
 #include <BluetoothSerial.h>
 #include <FS.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
@@ -10,10 +5,16 @@
 #include <Preferences.h>
 #include <SPIFFS.h>
 
+#include "GxEPD2_display_selection_new_style.h"
+#include "ScreenManager.h"
+#include "elapsedMillis.h"
+#include "images.h"
+#include "qrcodegen.h"
+
 #define PIN_ENABLE 13
 
 #define DEVICE_NAME "E-wizytowka"
-#define SCREEN_CONNECTED 1 // 1 podczas testow z ekranem
+#define SCREEN_CONNECTED 1  // 1 podczas testow z ekranem
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
 constexpr uint32_t DEEP_SLEEP_TIME_US = 10000000;
@@ -34,9 +35,9 @@ Preferences Data;
 ScreenManager screenManager;
 
 struct ScheduleEntry {
-  uint8_t day;  // dni tygodnia czyli 0 => pon, 4=> pt
-  uint8_t hour; // godzina rozpoczecia
-  String text;  // to co ma byc wpisane
+  uint8_t day;   // dni tygodnia czyli 0 => pon, 4=> pt
+  uint8_t hour;  // godzina rozpoczecia
+  String text;   // to co ma byc wpisane
 };
 
 ScheduleEntry schedule[] = {
@@ -89,7 +90,7 @@ void setup() {
   digitalWrite(LED_BUILTIN, 0);
 
   // Register event handlers
-  SerialBT.register_callback([](esp_spp_cb_event_t event, esp_spp_cb_param_t* param) {
+  SerialBT.register_callback([](esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
     if (event == ESP_SPP_SRV_OPEN_EVT) onBTConnect();
     if (event == ESP_SPP_CLOSE_EVT) onBTDisconnect();
   });
@@ -111,8 +112,7 @@ void loop() {
       String receivedData = readSerialMessageBT();
       Serial.println("Received data raw: " + receivedData);
 
-      /***************************************TO BE REPLACED BY ToF
-       * READING********************************/
+      /********TO BE REPLACED BY ToF READING*************/
       if (receivedData[1] != ':') {
         if (receivedData[0] == 'n') {
           Serial.println("next");
@@ -128,8 +128,7 @@ void loop() {
           screenManager.printCurrentScreen();
         }
       }
-      /***************************************TO BE REPLACED BY ToF
-       * READING********************************/
+      /********TO BE REPLACED BY ToF READING*************/
 
       // Print screen info
       if (receivedData[0] == 'i') screenManager.printInfo();
@@ -170,7 +169,7 @@ void onBTDisconnect() {
   Serial.println("Bluetooth device disconnected");
 }
 
-void saveStringToFlash(const String& key, const String& value) {
+void saveStringToFlash(const String &key, const String &value) {
   Data.begin(DATA_STORAGE_NAME, false);
   Data.putString(key.c_str(), value);
   Data.end();
@@ -185,7 +184,6 @@ void drawScreen0() {
   display.firstPage();
 
   do {
-
     Data.begin("storage", true);
     display.fillScreen(GxEPD_WHITE);
     display.fillRect(0, 0, 800, 100, GxEPD_BLACK);
@@ -311,8 +309,7 @@ void drawScreen1() {
           // Oblicz pozycję tekstu
           int16_t x1_val, y1_val;
           uint16_t w_val, h_val;
-          display.getTextBounds(cellValue, 0, 0, &x1_val, &y1_val, &w_val,
-                                &h_val);
+          display.getTextBounds(cellValue, 0, 0, &x1_val, &y1_val, &w_val, &h_val);
           int textX_val = x + (colWidth - w_val) / 2 - x1_val;
           int textY_val = y + (rowHeight - h_val) / 2 - y1_val;
 
@@ -329,14 +326,12 @@ void drawScreen1() {
 }
 
 void drawScreen2() {
-
   Serial.println("Print screen 2");
 #if SCREEN_CONNECTED
   display.setFullWindow();
   display.firstPage();
 
   do {
-
     display.fillScreen(GxEPD_WHITE);
 
     /*
@@ -348,11 +343,11 @@ void drawScreen2() {
     String link1 = Data.getString("link1", "https://example.com/1");
     String link2 = Data.getString("link2", "https://example.com/2");
 
-    drawQRCode(link1.c_str(), 50, 50); // lewy
+    drawQRCode(link1.c_str(), 50, 50);  // lewy
     display.setCursor(110, 400);
     display.setTextSize(2);
     display.print(Data.getString("tekst1", "napis1"));
-    drawQRCode(link2.c_str(), 460, 50); // prawy
+    drawQRCode(link2.c_str(), 460, 50);  // prawy
     display.setCursor(430, 400);
     display.setTextSize(2);
     display.print(Data.getString("tekst2", "napis2"));
@@ -428,14 +423,13 @@ void parseAndSaveToNVS(const String &data) {
         }
       }
     }
-    lineStart = lineEnd + 1; // Move to next line
+    lineStart = lineEnd + 1;  // Move to next line
   }
 }
 
 void drawQRCode(const char *text, int16_t x, int16_t y) {
-  bool ok = qrcodegen_encodeText(
-      text, qrcodeTemp, qrcodeData, qrcodegen_Ecc_LOW, qrcodegen_VERSION_MIN,
-      qrcodegen_VERSION_MAX, qrcodegen_Mask_AUTO, true);
+  bool ok = qrcodegen_encodeText(text, qrcodeTemp, qrcodeData, qrcodegen_Ecc_LOW, qrcodegen_VERSION_MIN,
+                                 qrcodegen_VERSION_MAX, qrcodegen_Mask_AUTO, true);
   if (!ok) {
     Serial.println("QR encode error");
     return;
@@ -443,13 +437,12 @@ void drawQRCode(const char *text, int16_t x, int16_t y) {
 
   int size = qrcodegen_getSize(qrcodeData);
 
-  int moduleSize = ceilf(300.0f / size); // tu zeby qr byl 300x300
+  int moduleSize = ceilf(300.0f / size);  // tu zeby qr byl 300x300
 
   for (int row = 0; row < size; row++) {
     for (int col = 0; col < size; col++) {
       if (qrcodegen_getModule(qrcodeData, col, row)) {
-        display.fillRect(x + col * moduleSize, y + row * moduleSize, moduleSize,
-                         moduleSize, GxEPD_BLACK);
+        display.fillRect(x + col * moduleSize, y + row * moduleSize, moduleSize, moduleSize, GxEPD_BLACK);
       }
     }
   }
