@@ -1,27 +1,28 @@
-#include <GxEPD2_BW.h>
-#include <Fonts/FreeMonoBold9pt7b.h>
-#include <FS.h>
-#include <SPIFFS.h>
 #include <BluetoothSerial.h>
+#include <FS.h>
+#include <Fonts/FreeMonoBold9pt7b.h>
+#include <GxEPD2_BW.h>
 #include <Preferences.h>
+#include <SPIFFS.h>
+
 #include "GxEPD2_display_selection_new_style.h"
-#include "images.h"
-#include "elapsedMillis.h"
 #include "ScreenManager.h"
+#include "elapsedMillis.h"
+#include "images.h"
+#include "qrcodegen.h"
 
 #define PIN_ENABLE 13
 
-#define DEVICE_NAME "ESP32-BT-Test"
-#define SCREEN_CONNECTED 0 //1 podczas testow z ekranem
+#define DEVICE_NAME "E-wizytowka"
+#define SCREEN_CONNECTED 1  // 1 podczas testow z ekranem
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
-constexpr uint32_t DEEP_SLEEP_TIME_US =  10000000;
+constexpr uint32_t DEEP_SLEEP_TIME_US = 10000000;
 constexpr uint16_t BT_TIME_TO_CONNECT_MS = 30000;
 constexpr uint16_t SERIAL_BT_TIMEOUT = 1000;
 constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 512;
 constexpr uint8_t MAX_ACTIVE_SCREENS = 5;
 constexpr char DATA_STORAGE_NAME[] = "storage";
-
 
 bool isConnected = false;
 bool dataUpdated = false;
@@ -35,18 +36,18 @@ ScreenManager screenManager;
 
 struct ScheduleEntry {
   uint8_t day;   // dni tygodnia czyli 0 => pon, 4=> pt
-  uint8_t hour;  // godzina rozpoczenia czyli 7 oznacza ze zaczyna sie o 7 a 15 ze o 15
+  uint8_t hour;  // godzina rozpoczecia
   String text;   // to co ma byc wpisane
 };
 
 ScheduleEntry schedule[] = {
-/*
-  {0, 14, "konsultacje"},
-  {1, 12, "konsultacje"},
-  {4, 11, "praca wlasna"},
-  {3, 9, "praca wlasna"},
-  {3, 10, "praca wlasna"}
-*/
+    /*
+      {0, 14, "konsultacje"},
+      {1, 12, "konsultacje"},
+      {4, 11, "praca wlasna"},
+      {3, 9, "praca wlasna"},
+      {3, 10, "praca wlasna"}
+    */
 };
 
 void drawScreen0();
@@ -54,11 +55,15 @@ void drawScreen1();
 void drawScreen2();
 void onBTConnect();
 void onBTDisconnect();
-void saveStringToFlash(const String& key, const String& value);
+void saveStringToFlash(const String &key, const String &value);
 void blinkLED();
 void startDeepSleep();
 String readSerialMessageBT();
-void parseAndSaveToNVS(const String& data);
+void parseAndSaveToNVS(const String &data);
+
+static uint8_t qrcodeTemp[qrcodegen_BUFFER_LEN_MAX];
+static uint8_t qrcodeData[qrcodegen_BUFFER_LEN_MAX];
+void drawQRCode(const char *text, int16_t x, int16_t y);
 
 void setup() {
   // if (!SPIFFS.begin(true)) {
@@ -85,7 +90,7 @@ void setup() {
   digitalWrite(LED_BUILTIN, 0);
 
   // Register event handlers
-  SerialBT.register_callback([](esp_spp_cb_event_t event, esp_spp_cb_param_t* param) {
+  SerialBT.register_callback([](esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
     if (event == ESP_SPP_SRV_OPEN_EVT) onBTConnect();
     if (event == ESP_SPP_CLOSE_EVT) onBTDisconnect();
   });
@@ -107,7 +112,7 @@ void loop() {
       String receivedData = readSerialMessageBT();
       Serial.println("Received data raw: " + receivedData);
 
-      /***************************************TO BE REPLACED BY ToF READING********************************/
+      /********TO BE REPLACED BY ToF READING*************/
       if (receivedData[1] != ':') {
         if (receivedData[0] == 'n') {
           Serial.println("next");
@@ -115,6 +120,7 @@ void loop() {
           screenManager.nextScreen();
           screenManager.printCurrentScreen();
         }
+
         if (receivedData[0] == 'p') {
           Serial.println("prev");
           // switch to the prev active screen and print it
@@ -122,7 +128,7 @@ void loop() {
           screenManager.printCurrentScreen();
         }
       }
-      /***************************************TO BE REPLACED BY ToF READING********************************/
+      /********TO BE REPLACED BY ToF READING*************/
 
       // Print screen info
       if (receivedData[0] == 'i') screenManager.printInfo();
@@ -163,7 +169,7 @@ void onBTDisconnect() {
   Serial.println("Bluetooth device disconnected");
 }
 
-void saveStringToFlash(const String& key, const String& value) {
+void saveStringToFlash(const String &key, const String &value) {
   Data.begin(DATA_STORAGE_NAME, false);
   Data.putString(key.c_str(), value);
   Data.end();
@@ -178,50 +184,49 @@ void drawScreen0() {
   display.firstPage();
 
   do {
+    Data.begin("storage", true);
+    display.fillScreen(GxEPD_WHITE);
+    display.fillRect(0, 0, 800, 100, GxEPD_BLACK);
 
-  Data.begin("storage", true);
-  display.fillScreen(GxEPD_WHITE);
-  display.fillRect(0, 0, 800, 100, GxEPD_BLACK);
-  
-  String room = Data.getString("01", "POKOJ 456");
-  int16_t x1, y1;
-  uint16_t textWidth1, textHeight1;
-  display.setTextSize(2);
-  display.getTextBounds(room, 0, 0, &x1, &y1, &textWidth1, &textHeight1);
-  int centerX = (display.width() - textWidth1) / 2;
-  display.setCursor(centerX, 60);
-  display.setTextColor(GxEPD_WHITE);
-  display.print(room);
+    String room = Data.getString("01", "POKOJ 456");
+    int16_t x1, y1;
+    uint16_t textWidth1, textHeight1;
+    display.setTextSize(2);
+    display.getTextBounds(room, 0, 0, &x1, &y1, &textWidth1, &textHeight1);
+    int centerX = (display.width() - textWidth1) / 2;
+    display.setCursor(centerX, 60);
+    display.setTextColor(GxEPD_WHITE);
+    display.print(room);
 
-  String name = Data.getString("02","DR INZ. KAMIL STAWIARSKI");
-  int16_t x2, y2;
-  uint16_t textWidth2, textHeight2;
-  display.setTextSize(3);
-  display.getTextBounds(name, 0, 0, &x2, &y2, &textWidth2, &textHeight2);
-  int centerX2 = (display.width() - textWidth2) / 2;
-  display.setCursor(centerX2, 200);
-  display.setTextColor(GxEPD_BLACK);
-  display.print(name);
+    String name = Data.getString("02", "DR INZ. KAMIL STAWIARSKI");
+    int16_t x2, y2;
+    uint16_t textWidth2, textHeight2;
+    display.setTextSize(3);
+    display.getTextBounds(name, 0, 0, &x2, &y2, &textWidth2, &textHeight2);
+    int centerX2 = (display.width() - textWidth2) / 2;
+    display.setCursor(centerX2, 200);
+    display.setTextColor(GxEPD_BLACK);
+    display.print(name);
 
-  String tel = Data.getString("03","tel. 123 456 789");
-  int16_t x3, y3;
-  uint16_t textWidth3, textHeight3;
-  display.setTextSize(2);
-  display.getTextBounds(tel, 0, 0, &x3, &y3, &textWidth3, &textHeight3);
-  int centerX3 = (display.width() - textWidth3) / 2;
-  display.setCursor(centerX3, 300);
-  display.print(tel);
+    String tel = Data.getString("03", "tel. 123 456 789");
+    int16_t x3, y3;
+    uint16_t textWidth3, textHeight3;
+    display.setTextSize(2);
+    display.getTextBounds(tel, 0, 0, &x3, &y3, &textWidth3, &textHeight3);
+    int centerX3 = (display.width() - textWidth3) / 2;
+    display.setCursor(centerX3, 300);
+    display.print(tel);
 
-  String mail = Data.getString("04","kamil.stawiarski@pg.edu.pl");
-  int16_t x4, y4;
-  uint16_t textWidth4, textHeight4;
-  display.setTextSize(2);
-  display.getTextBounds(mail, 0, 0, &x4, &y4, &textWidth4, &textHeight4);
-  int centerX4 = (display.width() - textWidth4) / 2;
-  display.setCursor(centerX4, 400);
-  display.print(mail);
+    String mail = Data.getString("04", "kamil.stawiarski@pg.edu.pl");
+    int16_t x4, y4;
+    uint16_t textWidth4, textHeight4;
+    display.setTextSize(2);
+    display.getTextBounds(mail, 0, 0, &x4, &y4, &textWidth4, &textHeight4);
+    int centerX4 = (display.width() - textWidth4) / 2;
+    display.setCursor(centerX4, 400);
+    display.print(mail);
 
-  Data.end();
+    Data.end();
 
   } while (display.nextPage());
 
@@ -234,14 +239,12 @@ void drawScreen1() {
   display.setTextSize(1);
   display.setFont(&FreeMonoBold9pt7b);
 
-  // Odczyt konfiguracji z NVS
   Data.begin(DATA_STORAGE_NAME, true);
   int numCols = Data.getString("1x", "3").toInt();
   int numRows = Data.getString("1y", "5").toInt();
   numCols = constrain(numCols, 1, 20);
   numRows = constrain(numRows, 1, 20);
 
-  // Obliczenia geometryczne
   const int screenWidth = display.width();
   const int screenHeight = display.height();
   const int gridXOffset = 100;
@@ -255,22 +258,19 @@ void drawScreen1() {
   do {
     display.fillScreen(GxEPD_WHITE);
 
-    // Nagłówki kolumn
     for (int col = 0; col < numCols; col++) {
       int x = gridXOffset + col * colWidth;
       display.drawRect(x, 0, colWidth, gridYOffset, GxEPD_BLACK);
-      
-      // Pobierz tekst nagłówka kolumny
-      String headerKey = "1hC" + String(col+1);
-      String headerText = Data.getString(headerKey.c_str(),String(col+1));
-      
-      // Oblicz pozycję tekstu
+
+      String headerKey = "1hC" + String(col + 1);
+      String headerText = Data.getString(headerKey.c_str(), String(col + 1));
+
       int16_t x1, y1;
       uint16_t w, h;
       display.getTextBounds(headerText, 0, 0, &x1, &y1, &w, &h);
-      int textX = x + (colWidth - w)/2 - x1;
-      int textY = (gridYOffset - h)/2 - y1;
-      
+      int textX = x + (colWidth - w) / 2 - x1;
+      int textY = (gridYOffset - h) / 2 - y1;
+
       display.setCursor(textX, textY);
       display.print(headerText);
     }
@@ -278,21 +278,21 @@ void drawScreen1() {
     // Wiersze i komórki
     for (int row = 0; row < numRows; row++) {
       int y = gridYOffset + row * rowHeight;
-      
+
       // Nagłówek wiersza
       display.drawRect(0, y, gridXOffset, rowHeight, GxEPD_BLACK);
-      
+
       // Pobierz tekst nagłówka wiersza
-      String rowKey = "1hR" + String(row+1);
-      String rowText = Data.getString(rowKey.c_str(),String(row+1));
-      
+      String rowKey = "1hR" + String(row + 1);
+      String rowText = Data.getString(rowKey.c_str(), String(row + 1));
+
       // Oblicz pozycję tekstu
       int16_t x1, y1;
       uint16_t w, h;
       display.getTextBounds(rowText, 0, 0, &x1, &y1, &w, &h);
-      int textX = (gridXOffset - w)/2 - x1;
-      int textY = y + (rowHeight - h)/2 - y1;
-      
+      int textX = (gridXOffset - w) / 2 - x1;
+      int textY = y + (rowHeight - h) / 2 - y1;
+
       display.setCursor(textX, textY);
       display.print(rowText);
 
@@ -300,19 +300,19 @@ void drawScreen1() {
       for (int col = 0; col < numCols; col++) {
         int x = gridXOffset + col * colWidth;
         display.drawRect(x, y, colWidth, rowHeight, GxEPD_BLACK);
-        
+
         // Pobierz dane komórki
-        String cellKey = "1" + String(col+1) + String(row+1);
+        String cellKey = "1" + String(col + 1) + String(row + 1);
         String cellValue = Data.getString(cellKey.c_str(), "");
-        
-        if(cellValue.length() > 0) {
+
+        if (cellValue.length() > 0) {
           // Oblicz pozycję tekstu
           int16_t x1_val, y1_val;
           uint16_t w_val, h_val;
           display.getTextBounds(cellValue, 0, 0, &x1_val, &y1_val, &w_val, &h_val);
-          int textX_val = x + (colWidth - w_val)/2 - x1_val;
-          int textY_val = y + (rowHeight - h_val)/2 - y1_val;
-          
+          int textX_val = x + (colWidth - w_val) / 2 - x1_val;
+          int textY_val = y + (rowHeight - h_val) / 2 - y1_val;
+
           display.setCursor(textX_val, textY_val);
           display.print(cellValue);
         }
@@ -320,32 +320,39 @@ void drawScreen1() {
     }
 
   } while (display.nextPage());
-  
+
   Data.end();
 #endif
 }
 
 void drawScreen2() {
-
   Serial.println("Print screen 2");
 #if SCREEN_CONNECTED
   display.setFullWindow();
   display.firstPage();
 
   do {
+    display.fillScreen(GxEPD_WHITE);
 
-  display.fillScreen(GxEPD_WHITE);
+    /*
+    display.drawXBitmap(50, 50,obrazek1, 300, 300, GxEPD_BLACK);
+    display.drawXBitmap(400, 50,obrazek1, 300, 300, GxEPD_BLACK);
+   */
 
-  display.drawXBitmap(50, 50,obrazek1, 300, 300, GxEPD_BLACK);
-  display.setCursor(110, 400);
-  display.setTextSize(2);
-  display.print("Kanal YT");
+    Data.begin(DATA_STORAGE_NAME, true);
+    String link1 = Data.getString("link1", "https://example.com/1");
+    String link2 = Data.getString("link2", "https://example.com/2");
 
-  display.drawXBitmap(400, 50,obrazek1, 300, 300, GxEPD_BLACK);
-  display.setCursor(430, 400);
-  display.setTextSize(2);
-  display.print("Most wiedzy");
-  } while(display.nextPage());
+    drawQRCode(link1.c_str(), 50, 50);  // lewy
+    display.setCursor(110, 400);
+    display.setTextSize(2);
+    display.print(Data.getString("tekst1", "napis1"));
+    drawQRCode(link2.c_str(), 460, 50);  // prawy
+    display.setCursor(430, 400);
+    display.setTextSize(2);
+    display.print(Data.getString("tekst2", "napis2"));
+    Data.end();
+  } while (display.nextPage());
 #endif
 }
 
@@ -386,7 +393,7 @@ String readSerialMessageBT() {
   return "";
 }
 
-void parseAndSaveToNVS(const String& data) {
+void parseAndSaveToNVS(const String &data) {
   int lineStart = 0;
 
   while (lineStart < data.length()) {
@@ -417,5 +424,26 @@ void parseAndSaveToNVS(const String& data) {
       }
     }
     lineStart = lineEnd + 1;  // Move to next line
+  }
+}
+
+void drawQRCode(const char *text, int16_t x, int16_t y) {
+  bool ok = qrcodegen_encodeText(text, qrcodeTemp, qrcodeData, qrcodegen_Ecc_LOW, qrcodegen_VERSION_MIN,
+                                 qrcodegen_VERSION_MAX, qrcodegen_Mask_AUTO, true);
+  if (!ok) {
+    Serial.println("QR encode error");
+    return;
+  }
+
+  int size = qrcodegen_getSize(qrcodeData);
+
+  int moduleSize = ceilf(300.0f / size);  // tu zeby qr byl 300x300
+
+  for (int row = 0; row < size; row++) {
+    for (int col = 0; col < size; col++) {
+      if (qrcodegen_getModule(qrcodeData, col, row)) {
+        display.fillRect(x + col * moduleSize, y + row * moduleSize, moduleSize, moduleSize, GxEPD_BLACK);
+      }
+    }
   }
 }
