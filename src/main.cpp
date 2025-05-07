@@ -27,6 +27,9 @@ constexpr uint8_t BUTTON_LEFT_PIN = 14;
 constexpr uint8_t BUTTON_RIGHT_PIN = 13;
 constexpr char DATA_STORAGE_NAME[] = "storage";
 
+static uint8_t qrcodeTemp[qrcodegen_BUFFER_LEN_MAX];
+static uint8_t qrcodeData[qrcodegen_BUFFER_LEN_MAX];
+
 bool isConnected = false;
 bool dataUpdated = false;
 
@@ -63,9 +66,6 @@ void blinkLED();
 void startDeepSleep();
 String readSerialMessageBT();
 void parseAndSaveToNVS(const String &data);
-
-static uint8_t qrcodeTemp[qrcodegen_BUFFER_LEN_MAX];
-static uint8_t qrcodeData[qrcodegen_BUFFER_LEN_MAX];
 void drawQRCode(const char *text, int16_t x, int16_t y);
 
 void setup() {
