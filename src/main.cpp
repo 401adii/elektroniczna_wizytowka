@@ -10,18 +10,21 @@
 #include "elapsedMillis.h"
 #include "images.h"
 #include "qrcodegen.h"
+#include "esp_sleep.h"
+#include "driver/rtc_io.h"
 
-#define PIN_ENABLE 13
-
+#define WAKEUP_BITMASK 0x6000
 #define DEVICE_NAME "E-wizytowka"
-#define SCREEN_CONNECTED 1  // 1 podczas testow z ekranem
+#define SCREEN_CONNECTED 0  // 1 podczas testow z ekranem
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
-constexpr uint32_t DEEP_SLEEP_TIME_US = 10000000;
-constexpr uint16_t BT_TIME_TO_CONNECT_MS = 30000;
+constexpr uint32_t DEEP_SLEEP_TIME_US = 30000000;
+constexpr uint16_t BT_TIME_TO_CONNECT_MS = 5000;
 constexpr uint16_t SERIAL_BT_TIMEOUT = 1000;
 constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 512;
 constexpr uint8_t MAX_ACTIVE_SCREENS = 5;
+constexpr uint8_t BUTTON_LEFT_PIN = 14;
+constexpr uint8_t BUTTON_RIGHT_PIN = 13;
 constexpr char DATA_STORAGE_NAME[] = "storage";
 
 bool isConnected = false;
@@ -76,9 +79,10 @@ void setup() {
   //   Serial.println("SPIFFS initialized correctly");
 
   // }
-
-  pinMode(PIN_ENABLE, OUTPUT);
-  digitalWrite(PIN_ENABLE, HIGH);
+  pinMode(BUTTON_LEFT_PIN, INPUT);
+  pinMode(BUTTON_RIGHT_PIN, INPUT);
+  esp_sleep_enable_ext1_wakeup(WAKEUP_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
+  
   display.init(115200, true, 2, false);
   display.setRotation(0);
   display.setFont(&FreeMonoBold9pt7b);
