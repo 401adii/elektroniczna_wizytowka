@@ -12,6 +12,7 @@
 #include "qrcodegen.h"
 #include "esp_sleep.h"
 #include "driver/rtc_io.h"
+#include "esp_attr.h"
 
 #define WAKEUP_BITMASK 0x6000
 #define DEVICE_NAME "E-wizytowka"
@@ -19,7 +20,7 @@
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
 constexpr uint32_t DEEP_SLEEP_TIME_US = 30000000;
-constexpr uint16_t BT_TIME_TO_CONNECT_MS = 5000;
+constexpr uint16_t BT_TIME_TO_CONNECT_MS = 10000;
 constexpr uint16_t SERIAL_BT_TIMEOUT = 1000;
 constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 512;
 constexpr uint8_t MAX_ACTIVE_SCREENS = 5;
@@ -29,9 +30,12 @@ constexpr char DATA_STORAGE_NAME[] = "storage";
 
 static uint8_t qrcodeTemp[qrcodegen_BUFFER_LEN_MAX];
 static uint8_t qrcodeData[qrcodegen_BUFFER_LEN_MAX];
+static portMUX_TYPE button_spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 bool isConnected = false;
 bool dataUpdated = false;
+
+uint8_t button_pressed = 0; /*1 -> left; 2 -> right*/
 
 BluetoothSerial SerialBT;
 elapsedMillis ledBlink;
@@ -67,6 +71,8 @@ void startDeepSleep();
 String readSerialMessageBT();
 void parseAndSaveToNVS(const String &data);
 void drawQRCode(const char *text, int16_t x, int16_t y);
+void IRAM_ATTR left_button_ISR();
+void IRAM_ATTR right_button_ISR();
 
 void setup() {
   // if (!SPIFFS.begin(true)) {
@@ -82,6 +88,8 @@ void setup() {
   pinMode(BUTTON_LEFT_PIN, INPUT);
   pinMode(BUTTON_RIGHT_PIN, INPUT);
   esp_sleep_enable_ext1_wakeup(WAKEUP_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_LEFT_PIN), left_button_ISR, RISING);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_RIGHT_PIN), right_button_ISR, RISING);
   
   display.init(115200, true, 2, false);
   display.setRotation(0);
@@ -109,30 +117,24 @@ void setup() {
 }
 
 void loop() {
+  if (button_pressed != 0) {
+    if (button_pressed == 1) {
+      // left
+      screenManager.prevScreen();
+    } else if (button_pressed == 2) {
+      // right
+      screenManager.nextScreen();
+    }
+    screenManager.printCurrentScreen();
+    button_pressed = 0;
+  }
+
   if (isConnected) {
     digitalWrite(BUILTIN_LED, 1);
 
     if (SerialBT.available()) {
       String receivedData = readSerialMessageBT();
       Serial.println("Received data raw: " + receivedData);
-
-      /********TO BE REPLACED BY ToF READING*************/
-      if (receivedData[1] != ':') {
-        if (receivedData[0] == 'n') {
-          Serial.println("next");
-          // switch to the next active screen and print it
-          screenManager.nextScreen();
-          screenManager.printCurrentScreen();
-        }
-
-        if (receivedData[0] == 'p') {
-          Serial.println("prev");
-          // switch to the prev active screen and print it
-          screenManager.prevScreen();
-          screenManager.printCurrentScreen();
-        }
-      }
-      /********TO BE REPLACED BY ToF READING*************/
 
       // Print screen info
       if (receivedData[0] == 'i') screenManager.printInfo();
@@ -450,4 +452,16 @@ void drawQRCode(const char *text, int16_t x, int16_t y) {
       }
     }
   }
+}
+
+void IRAM_ATTR left_button_ISR() {
+  portENTER_CRITICAL_ISR(&button_spinlock);
+  button_pressed = 1;
+  portEXIT_CRITICAL_ISR(&button_spinlock);
+}
+
+void IRAM_ATTR right_button_ISR() {
+  portENTER_CRITICAL_ISR(&button_spinlock);
+  button_pressed = 2;
+  portEXIT_CRITICAL_ISR(&button_spinlock);
 }
