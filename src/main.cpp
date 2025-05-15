@@ -3,7 +3,9 @@
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include <GxEPD2_BW.h>
 #include <Preferences.h>
-#include <SPIFFS.h>
+#include <Crypto.h>
+#include <SHA256.h>
+#include <string.h>
 
 #include "GxEPD2_display_selection_new_style.h"
 #include "ScreenManager.h"
@@ -20,13 +22,16 @@
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
 constexpr uint32_t DEEP_SLEEP_TIME_US = 30000000;
-constexpr uint16_t BT_TIME_TO_CONNECT_MS = 10000;
+constexpr uint16_t BT_TIME_TO_CONNECT_MS = 100000;
+constexpr uint16_t BT_AUTH_TIMEOUT_MS = 5000;
 constexpr uint16_t SERIAL_BT_TIMEOUT = 1000;
 constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 512;
 constexpr uint8_t MAX_ACTIVE_SCREENS = 5;
 constexpr uint8_t BUTTON_LEFT_PIN = 14;
 constexpr uint8_t BUTTON_RIGHT_PIN = 13;
+constexpr uint8_t HASH_SIZE = 32;
 constexpr char DATA_STORAGE_NAME[] = "storage";
+constexpr char SECRET_KEY[] = "testsecretkey123";
 
 static uint8_t qrcodeTemp[qrcodegen_BUFFER_LEN_MAX];
 static uint8_t qrcodeData[qrcodegen_BUFFER_LEN_MAX];
@@ -34,12 +39,14 @@ static portMUX_TYPE button_spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 bool isConnected = false;
 bool dataUpdated = false;
+bool isAuthorized = false;
 
 uint8_t button_pressed = 0; /*1 -> left; 2 -> right*/
 
 BluetoothSerial SerialBT;
 elapsedMillis ledBlink;
 elapsedMillis connectWait;
+SHA256 sha256;
 
 Preferences Data;
 ScreenManager screenManager;
@@ -73,6 +80,7 @@ void parseAndSaveToNVS(const String &data);
 void drawQRCode(const char *text, int16_t x, int16_t y);
 void IRAM_ATTR left_button_ISR();
 void IRAM_ATTR right_button_ISR();
+bool authorizeBT();
 
 void setup() {
   pinMode(BUTTON_LEFT_PIN, INPUT);
@@ -98,6 +106,8 @@ void setup() {
   });
 
   SerialBT.begin(DEVICE_NAME);
+  SerialBT.setPin("1234");
+  SerialBT.enableSSP();
   Serial.println("Waiting for BT connection...");
 
   screenManager.addScreen(0, &drawScreen0);
@@ -120,6 +130,10 @@ void loop() {
   }
 
   if (isConnected) {
+    if(!isAuthorized) {
+      isAuthorized = authorizeBT();
+    }
+
     digitalWrite(BUILTIN_LED, 1);
 
     if (SerialBT.available()) {
@@ -157,11 +171,13 @@ void loop() {
 
 void onBTConnect() {
   isConnected = true;
+  isAuthorized = false;
   Serial.println("Bluetooth device connected");
 }
 
 void onBTDisconnect() {
   isConnected = false;
+  isAuthorized = false;
   Serial.println("Bluetooth device disconnected");
 }
 
@@ -454,4 +470,43 @@ void IRAM_ATTR right_button_ISR() {
   portENTER_CRITICAL_ISR(&button_spinlock);
   button_pressed = 2;
   portEXIT_CRITICAL_ISR(&button_spinlock);
+}
+
+bool authorizeBT(){
+  // 8 digit number formatted as string with leading zeros
+  char challenge[9];
+  snprintf(challenge, sizeof(challenge), "%08lu", random(0, 99999999));
+
+  // Compute HMAC-SHA-256 of the challenge
+  uint8_t hmac[HASH_SIZE];
+  sha256.resetHMAC(SECRET_KEY, strlen(SECRET_KEY));
+  sha256.update(challenge, strlen(challenge));
+  sha256.finalizeHMAC(SECRET_KEY, strlen(SECRET_KEY), hmac, HASH_SIZE);
+
+  // Convert HMAC to hex string for comparison
+  char hmacHex[HASH_SIZE * 2 + 1];
+  for (int i = 0; i < HASH_SIZE; i++) {
+    sprintf(hmacHex + i * 2, "%02x", hmac[i]);
+  }
+  hmacHex[HASH_SIZE * 2] = '\0';
+  Serial.printf("Expected HMAC: %s\n", hmacHex);
+
+  SerialBT.println(challenge);
+
+  unsigned long start = millis();
+  String response = "";
+  while (millis() - start < BT_AUTH_TIMEOUT_MS && !response.endsWith("\n")) {
+    if (SerialBT.available()) {
+      response += (char)SerialBT.read();
+    }
+  }
+  response.trim();
+
+  if(response == hmacHex){
+    return true;
+  } else {
+    Serial.println("Auth error");
+    SerialBT.disconnect();
+    return false;
+  }
 }
