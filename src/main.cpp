@@ -18,7 +18,8 @@
 
 #define WAKEUP_BITMASK 0x6000
 #define DEVICE_NAME "E-wizytowka"
-#define SCREEN_CONNECTED 0  // 1 podczas testow z ekranem
+#define SCREEN_CONNECTED 0  // 1 for testink with an eink
+#define SECURE_BT 1  // 1 to enable
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
 constexpr uint32_t DEEP_SLEEP_TIME_US = 30000000;
@@ -130,10 +131,11 @@ void loop() {
   }
 
   if (isConnected) {
+#if SECURE_BT
     if(!isAuthorized) {
       isAuthorized = authorizeBT();
     }
-
+#endif
     digitalWrite(BUILTIN_LED, 1);
 
     if (SerialBT.available()) {
