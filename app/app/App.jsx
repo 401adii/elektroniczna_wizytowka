@@ -6,6 +6,7 @@ import DeviceSelection from './screens/DeviceSelection';
 import MainEditor from './screens/MainEditor';
 import CredentialsEditor from './screens/CredentialsEditor';
 import ScheduleEditor from './screens/ScheduleEditor';
+import QRCodeEditor from './screens/QRCodeEditor';
 
 export default function App() {
   
@@ -17,10 +18,11 @@ export default function App() {
         <Stack.Screen name='test' component={TestView}/>
         <Stack.Screen name='DeviceSelection' options={{title: 'Connect to a device'}} component={DeviceSelection}/>
         <Stack.Screen name='MainEditor' options={{title: 'Choose screens'}} component={MainEditor} initialParams={{
-          newData: ""
+          credentialsData: ""
         }}/>
         <Stack.Screen name='CredentialsEditor' options={{title: 'Edit credentials'}} component={CredentialsEditor}/>
         <Stack.Screen name='ScheduleEditor' options={{title: 'Edit schedule'}} component={ScheduleEditor}/>
+        <Stack.Screen name='QRCodeEditor' options={{title: 'Edit QR codes'}} component={QRCodeEditor}/>
       </Stack.Navigator>
     </NavigationContainer>
   );

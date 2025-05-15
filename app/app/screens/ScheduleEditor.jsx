@@ -65,19 +65,42 @@ const ScheduleEditor = () => {
   }, [rows, cols]);
 
   return (
-    <View>
-      <ScrollView horizontal>
-        <ScrollView>
-          <Table>
-            <Rows data={inputArray} />
-          </Table>
-        </ScrollView>
-      </ScrollView>
-      <Button text='add row' onPress={handleAddRow} />
-      <Button text='remove row' onPress={handleRemoveRow} />
-      <Button text='add column' onPress={handleAddColumn} />
-      <Button text='remove column' onPress={handleRemoveColumn} />
+    <View className='flex-1 items-center justify-center'>
+      <View className=''>
+        <Button text="Top" onPress={handleRemoveRow} />
+      </View>
+
+      <View className='flex-row items-center p-0z'>
+        
+        <View classname=''>
+          <Button text="Left" onPress={handleRemoveColumn} />
+        </View>
+
+        
+        <View className='w-40 h-40'>
+          <ScrollView horizontal>
+            <ScrollView>
+              <Table>
+                <Rows data={inputArray} />
+              </Table>
+            </ScrollView>
+          </ScrollView>
+        </View>
+
+        <View className=''>
+          <Button text="Right" onPress={handleAddColumn} />
+        </View>
+      </View>
+
+      
+      <View className=''>
+        <Button text="Bottom" onPress={handleAddRow} />
+      </View>
+      <View>
+        <Button text='save' onPress={() => ()}/>
+      </View>
     </View>
+
   );
 };
 

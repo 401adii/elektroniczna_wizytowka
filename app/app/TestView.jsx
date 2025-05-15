@@ -1,25 +1,10 @@
-import { View } from 'react-native'
-import React, {useState} from 'react'
-import EnableBluetooth from './modals/EnableBluetooth'
-import RequestPermission from './modals/RequestPermission'
-import Button from './components/Button'
+import { View, Text } from 'react-native'
+import React from 'react'
 
-const TestView = ({navigation}) => {
-
-  const [trigger, setTrigger] = useState(false);
-  
-  const handleTrigger = () => {
-    setTrigger(true);
-  }
-
-  const handleOnEnabled = () => {
-    setTrigger(false);
-  }
-  
+const TestView = () => {
   return (
-    <View className='flex-1 items-center justify-center'>
-      {trigger ? <RequestPermission onGranted={() => handleOnEnabled()}/> : null}
-      <Button text='trigger' onPress={() => handleTrigger()}/>
+    <View>
+      <Text>TestView</Text>
     </View>
   )
 }
