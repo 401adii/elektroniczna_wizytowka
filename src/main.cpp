@@ -7,12 +7,12 @@
 
 #include "GxEPD2_display_selection_new_style.h"
 #include "ScreenManager.h"
+#include "driver/rtc_io.h"
 #include "elapsedMillis.h"
+#include "esp_attr.h"
+#include "esp_sleep.h"
 #include "images.h"
 #include "qrcodegen.h"
-#include "esp_sleep.h"
-#include "driver/rtc_io.h"
-#include "esp_attr.h"
 
 #define WAKEUP_BITMASK 0x6000
 #define DEVICE_NAME "E-wizytowka"
@@ -75,22 +75,12 @@ void IRAM_ATTR left_button_ISR();
 void IRAM_ATTR right_button_ISR();
 
 void setup() {
-  // if (!SPIFFS.begin(true)) {
-
-  //   Serial.println("SPIFFS initialization failed");
-  //   return;
-
-  // } else {
-
-  //   Serial.println("SPIFFS initialized correctly");
-
-  // }
   pinMode(BUTTON_LEFT_PIN, INPUT);
   pinMode(BUTTON_RIGHT_PIN, INPUT);
   esp_sleep_enable_ext1_wakeup(WAKEUP_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
   attachInterrupt(digitalPinToInterrupt(BUTTON_LEFT_PIN), left_button_ISR, RISING);
   attachInterrupt(digitalPinToInterrupt(BUTTON_RIGHT_PIN), right_button_ISR, RISING);
-  
+
   display.init(115200, true, 2, false);
   display.setRotation(0);
   display.setFont(&FreeMonoBold9pt7b);
