@@ -8,7 +8,7 @@ import BouncyCheckbox from 'react-native-bouncy-checkbox'
 const MainEditor = ({navigation, route}) => {
 
   const [activeScreensKey, setActiveScreensKey] = useState("activeScreens");
-  const [credentialsDataKey, setCredentialsDataKey] = useState("credentialsData");
+  //const [credentialsDataKey, setCredentialsDataKey] = useState("credentialsData");
   const [credentialsData, setCredentialsData] = useState("");
   const [activeScreens, setActiveScreens] = useState({0:1,
                                                       1:1,
@@ -83,7 +83,7 @@ const MainEditor = ({navigation, route}) => {
     useCallback(() => {
       if(route.params?.credentialsData !== "")
         setCredentialsData(route.params?.credentialsData)
-        addDataToStorage(credentialsDataKey, route.params?.credentialsData);
+        //addDataToStorage(credentialsDataKey, route.params?.credentialsData);
     },[route.params?.credentialsData])
   )
 
@@ -112,7 +112,6 @@ const MainEditor = ({navigation, route}) => {
         <Button onPress={() => navigation.navigate('QRCodeEditor')} text='QR Code Editor'/>
         <BouncyCheckbox fillColor='rgb(255, 105, 0)' onPress={() => updateActiveScreens(2)} isChecked={activeScreens[2] === 1 ? true : false}/>
       </View>
-      <Button onPress={() => navigation.navigate('')} text='change device'/>
       <Button onPress={() => sendData()} text='send data'/>
     </View>
   )

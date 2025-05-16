@@ -97,7 +97,7 @@ const ScheduleEditor = () => {
         <Button text="Bottom" onPress={handleAddRow} />
       </View>
       <View>
-        <Button text='save' onPress={() => ()}/>
+        <Button text='save' onPress={() => {}}/>
       </View>
     </View>
 
