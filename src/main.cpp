@@ -16,17 +16,19 @@
 
 #define WAKEUP_BITMASK 0x6000
 #define DEVICE_NAME "E-wizytowka"
-#define SCREEN_CONNECTED 0  // 1 podczas testow z ekranem
+#define SCREEN_CONNECTED 1  // 1 podczas testow z ekranem
+#define TIMEOUT 30000
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
 constexpr uint32_t DEEP_SLEEP_TIME_US = 30000000;
-constexpr uint16_t BT_TIME_TO_CONNECT_MS = 10000;
+constexpr uint16_t BT_TIME_TO_CONNECT_MS = 30000;
 constexpr uint16_t SERIAL_BT_TIMEOUT = 1000;
 constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 512;
 constexpr uint8_t MAX_ACTIVE_SCREENS = 5;
 constexpr uint8_t BUTTON_LEFT_PIN = 14;
 constexpr uint8_t BUTTON_RIGHT_PIN = 13;
 constexpr char DATA_STORAGE_NAME[] = "storage";
+int Screen = 0;
 
 static uint8_t qrcodeTemp[qrcodegen_BUFFER_LEN_MAX];
 static uint8_t qrcodeData[qrcodegen_BUFFER_LEN_MAX];
@@ -40,6 +42,7 @@ uint8_t button_pressed = 0; /*1 -> left; 2 -> right*/
 BluetoothSerial SerialBT;
 elapsedMillis ledBlink;
 elapsedMillis connectWait;
+elapsedMillis screenTimeoutTimer;
 
 Preferences Data;
 ScreenManager screenManager;
@@ -153,6 +156,13 @@ void loop() {
       dataUpdated = true;
     }
   }
+
+  if (Screen != 0) {
+    if (screenTimeoutTimer > TIMEOUT) {
+      drawScreen0();
+      screenTimeoutTimer = 0;
+    }
+  }
 }
 
 void onBTConnect() {
@@ -174,6 +184,8 @@ void saveStringToFlash(const String &key, const String &value) {
 }
 
 void drawScreen0() {
+  Screen = 0;
+  screenTimeoutTimer = 0;
   Serial.println("Print screen 0");
 #if SCREEN_CONNECTED
   display.setFullWindow();
@@ -230,6 +242,8 @@ void drawScreen0() {
 }
 
 void drawScreen1() {
+  Screen = 1;
+  screenTimeoutTimer = 0;
   Serial.println("Print screen 1");
 #if SCREEN_CONNECTED
   display.setTextSize(1);
@@ -322,6 +336,8 @@ void drawScreen1() {
 }
 
 void drawScreen2() {
+  Screen = 2;
+  screenTimeoutTimer = 0;
   Serial.println("Print screen 2");
 #if SCREEN_CONNECTED
   display.setFullWindow();
@@ -329,11 +345,6 @@ void drawScreen2() {
 
   do {
     display.fillScreen(GxEPD_WHITE);
-
-    /*
-    display.drawXBitmap(50, 50,obrazek1, 300, 300, GxEPD_BLACK);
-    display.drawXBitmap(400, 50,obrazek1, 300, 300, GxEPD_BLACK);
-   */
 
     Data.begin(DATA_STORAGE_NAME, true);
     String link1 = Data.getString("link1", "https://example.com/1");
