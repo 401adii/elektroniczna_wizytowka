@@ -72,6 +72,7 @@ const ConnectToDevice = ({device, onConnected, onCancel, data}) => {
 	console.log(data);
 	  for(const str of data){    
       try{
+		console.log(str);
         await device.write(str);
       }
       catch(error){
