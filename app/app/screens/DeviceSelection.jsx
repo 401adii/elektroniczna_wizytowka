@@ -9,24 +9,13 @@ import Button from '../components/Button';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const DeviceSelection = ({navigation}) => {
+const DeviceSelection = ({navigation, route}) => {
 
   const [bondedDevices, setBondedDevices] = useState([]);
   const [deviceToConnect, setDeviceToConnect] = useState(null);
   const [focusFlag, setFocusFlag] = useState(true);
   const [skipFlag, setSkipFlag] = useState(false);
-
-  const checkStorage = async () => {
-    try {
-      const device = await AsyncStorage.getItem('defaultDevice');
-      if(device !== null)
-        navigation.navigate('ChoiceScreen');
-    }
-    catch(error) {
-      console.error('Connection screen -> checkStorage(): ', error);
-    }
-
-  }
+  const [data, setData] = useState([]);
 
   const getDevices = async () => {
     try {
@@ -39,25 +28,28 @@ const DeviceSelection = ({navigation}) => {
     }
   }
 
-  const handleOnConnected = () => {
+  const handleOnConnected = async () => {
     setDeviceToConnect(null);
-    navigation.navigate('MainEditor');
+    // for(const str of data){
+    //   try{
+    //     await device.send(str);
+    //   }
+    //   catch(error){
+    //     console.error("error while sending", error);
+    //   }
+    // }
+
   }
 
-  useEffect(() => {
-    checkStorage();
-  }, [])
-
-  useFocusEffect( 
+  useFocusEffect(
     useCallback(() => {
-      setFocusFlag(true);
-      getDevices();
-      return () => {
-        setFocusFlag(false);
-        setBondedDevices([]);
+      if (route.params?.dataToSend) {
+        setData(route.params.dataToSend);
+        //console.log("Data:", route.params.dataToSend);
       }
-    }, [])
-  )
+    }, [route.params?.dataToSend])
+  );
+
   
   return (
     <ScrollView>
@@ -66,7 +58,8 @@ const DeviceSelection = ({navigation}) => {
       {deviceToConnect !== null ?
       <ConnectToDevice device={deviceToConnect} 
                           onConnected={() => handleOnConnected()}
-                          onCancel={() => setDeviceToConnect(null)}/> : null}
+                          onCancel={() => setDeviceToConnect(null)}
+                          data={data}/> : null}
       {bondedDevices.length === 0 ? 
       <View className='flex-1 justify-center p-2 items-center gap-2'>
         <Text className='text-center'> No paired devices foud</Text>

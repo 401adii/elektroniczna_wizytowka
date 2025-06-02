@@ -12,7 +12,8 @@ const MainEditor = ({navigation, route}) => {
   const [credentialsData, setCredentialsData] = useState("");
   const [activeScreens, setActiveScreens] = useState({0:1,
                                                       1:1,
-                                                      2:1})
+                                                      2:1});
+  const [dataToSend, setDataToSend] = useState([]);
 
   const updateActiveScreens = async (key) =>{ //controls the active screens and saves to async storage that hopefully works
     try{
@@ -29,20 +30,29 @@ const MainEditor = ({navigation, route}) => {
     
   }
 
-  const sendData = async () => { //this prepares data to send
-    console.log("this data will be send:");
-    str = JSON.stringify(activeScreens);
-    console.log(convertJsonToScreenData(str));
-    str = JSON.stringify(credentialsData);
-    console.log(convertJsonToAPI(str, 0));
-  }
+const sendData = async () => {
+  console.log("this data will be send:");
+  
+  const preparedData = [];
+  let str = convertJsonToScreenData(JSON.stringify(activeScreens));
+  preparedData.push(str);
+  str = convertJsonToAPI(JSON.stringify(credentialsData), 0);
+  preparedData.push(str);
+
+  setDataToSend(preparedData);
+
+  console.log(preparedData);
+  navigation.navigate("DeviceSelection", {
+    dataToSend: preparedData,
+  });
+};
 
   const convertJsonToScreenData = (json) => { //converts screen data to correct format for the esp32
     try {
       const obj = JSON.parse(json); // parse JSON string to object
       const formatted = Object.entries(obj)
-        .map(([key, value]) => `${key}:${value}`) // format each pair
-        .join(','); // join with commas
+        .map(([key, value]) => `${key}:${String(value).replace(/"/g, '')}`) // format each pair
+        .join('\n'); // join with commas
   
       return formatted + '\n\r'; // add literal \n\r
     } catch (error) {
@@ -58,10 +68,10 @@ const MainEditor = ({navigation, route}) => {
   
       const formatted = entries.map(([key, value]) => {
         const formattedKey = `${screenNumber}${key}`.padStart(2, '0');
-        return `${formattedKey}:"${value}"`;
+        return `${formattedKey}:${String(value).replace(/"/g, '')}`;
       });
   
-      return formatted.join(',') + '\n\r';
+      return formatted.join('\n') + '\n\r';
     } catch (error) {
       console.error('Invalid JSON:', error);
       return '';
@@ -77,7 +87,7 @@ const MainEditor = ({navigation, route}) => {
       console.error("addDataToStorage error");
     }
   }
-  
+
 
   useFocusEffect( //controls data updates from specific screens
     useCallback(() => {

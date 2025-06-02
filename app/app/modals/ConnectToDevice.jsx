@@ -3,7 +3,7 @@ import React, {useRef, useEffect} from 'react'
 import PopUpWithButton from '../components/PopUpWithButton'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-const ConnectToDevice = ({device, onConnected, onCancel}) => {
+const ConnectToDevice = ({device, onConnected, onCancel, data}) => {
 
 	const cancelledRef = useRef(false);
 
@@ -34,6 +34,7 @@ const ConnectToDevice = ({device, onConnected, onCancel}) => {
 		if(cancelledRef.current === false){
 			onConnected();
 			saveDevice();
+			sendData()
 			ToastAndroid.showWithGravity('Connected succesfully!',
 				ToastAndroid.SHORT,
 				ToastAndroid.BOTTOM)
@@ -65,6 +66,18 @@ const ConnectToDevice = ({device, onConnected, onCancel}) => {
 		catch(error) {
 			error.log('Connecting to device -> saveDevice(): ', error);
 		}
+	}
+
+	const sendData = async () =>{
+	console.log(data);
+	  for(const str of data){    
+      try{
+        await device.write(str);
+      }
+      catch(error){
+        console.error("error while sending", error);
+      }
+    }
 	}
 
 	useEffect(() => {
