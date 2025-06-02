@@ -350,19 +350,47 @@ void drawScreen2() {
   do {
     display.fillScreen(GxEPD_WHITE);
 
+    // Pobierz dane z pamięci
     Data.begin(DATA_STORAGE_NAME, true);
     String link1 = Data.getString("link1", "https://example.com/1");
     String link2 = Data.getString("link2", "https://example.com/2");
-
-    drawQRCode(link1.c_str(), 50, 50);  // lewy
-    display.setCursor(110, 400);
-    display.setTextSize(2);
-    display.print(Data.getString("tekst1", "napis1"));
-    drawQRCode(link2.c_str(), 460, 50);  // prawy
-    display.setCursor(430, 400);
-    display.setTextSize(2);
-    display.print(Data.getString("tekst2", "napis2"));
+    String text1 = Data.getString("tekst1", "napis1");
+    String text2 = Data.getString("tekst2", "napis2");
     Data.end();
+
+    // Parametry ekranu
+    const uint16_t screenWidth = display.width();
+    const uint16_t screenHeight = display.height();
+    const uint16_t halfWidth = screenWidth / 2;
+
+    // Nowe stałe dla układu
+    const uint16_t qrSize = 300;          // Zwiększony rozmiar kodu QR
+    const uint16_t qrLeftMargin = 40;     // Margines od lewej krawędzi sekcji
+    const uint16_t qrTopMargin = 30;      // Margines od góry dla QR
+    const uint16_t textTopMargin = 400;    // Tekst znacznie niżej
+    const uint8_t textSize = 2;
+
+    // Funkcja pomocnicza do centrowania tekstu w sekcji
+    auto centerText = [&](const String &text, uint16_t sectionX) {
+      int16_t x, y;
+      uint16_t w, h;
+      display.getTextBounds(text, 0, 0, &x, &y, &w, &h);
+      return sectionX + (halfWidth - w) / 2;
+    };
+
+    // Lewa sekcja
+    drawQRCode(link1.c_str(), qrLeftMargin, qrTopMargin);  // QR bliżej lewej krawędzi
+    display.setTextSize(textSize);
+    display.setCursor(centerText(text1, 0), textTopMargin);
+    display.print(text1);
+
+    // Prawa sekcja
+    const uint16_t rightQRX = halfWidth + qrLeftMargin;
+    drawQRCode(link2.c_str(), rightQRX, qrTopMargin);  // QR bliżej środka ekranu
+    display.setTextSize(textSize);
+    display.setCursor(centerText(text2, halfWidth), textTopMargin);
+    display.print(text2);
+
   } while (display.nextPage());
 #endif
 }
