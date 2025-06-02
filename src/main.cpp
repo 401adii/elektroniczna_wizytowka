@@ -18,6 +18,7 @@
 #define DEVICE_NAME "E-wizytowka"
 #define SCREEN_CONNECTED 1  // 1 podczas testow z ekranem
 #define TIMEOUT 30000
+#define PIN_ENABLE 32
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
 constexpr uint32_t DEEP_SLEEP_TIME_US = 30000000;
@@ -78,6 +79,9 @@ void IRAM_ATTR left_button_ISR();
 void IRAM_ATTR right_button_ISR();
 
 void setup() {
+  pinMode(PIN_ENABLE, OUTPUT);
+  digitalWrite(PIN_ENABLE, HIGH); 
+
   pinMode(BUTTON_LEFT_PIN, INPUT);
   pinMode(BUTTON_RIGHT_PIN, INPUT);
   esp_sleep_enable_ext1_wakeup(WAKEUP_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
