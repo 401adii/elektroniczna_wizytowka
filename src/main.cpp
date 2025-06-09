@@ -1,9 +1,9 @@
 #include <BluetoothSerial.h>
+#include <Crypto.h>
 #include <FS.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include <GxEPD2_BW.h>
 #include <Preferences.h>
-#include <Crypto.h>
 #include <SHA256.h>
 #include <string.h>
 
@@ -19,7 +19,7 @@
 #define WAKEUP_BITMASK 0x6000
 #define DEVICE_NAME "E-wizytowka"
 #define SCREEN_CONNECTED 0  // 1 for testink with an eink
-#define SECURE_BT 1  // 1 to enable
+#define SECURE_BT 0         // 1 to enable
 #define TIMEOUT 30000
 #define PIN_ENABLE 32
 
@@ -88,7 +88,7 @@ bool authorizeBT();
 
 void setup() {
   pinMode(PIN_ENABLE, OUTPUT);
-  digitalWrite(PIN_ENABLE, HIGH); 
+  digitalWrite(PIN_ENABLE, HIGH);
 
   pinMode(BUTTON_LEFT_PIN, INPUT);
   pinMode(BUTTON_RIGHT_PIN, INPUT);
@@ -138,7 +138,7 @@ void loop() {
 
   if (isConnected) {
 #if SECURE_BT
-    if(!isAuthorized) {
+    if (!isAuthorized) {
       isAuthorized = authorizeBT();
     }
 #endif
@@ -381,10 +381,10 @@ void drawScreen2() {
     const uint16_t halfWidth = screenWidth / 2;
 
     // Nowe stałe dla układu
-    const uint16_t qrSize = 300;          // Zwiększony rozmiar kodu QR
-    const uint16_t qrLeftMargin = 40;     // Margines od lewej krawędzi sekcji
-    const uint16_t qrTopMargin = 30;      // Margines od góry dla QR
-    const uint16_t textTopMargin = 400;    // Tekst znacznie niżej
+    const uint16_t qrSize = 300;         // Zwiększony rozmiar kodu QR
+    const uint16_t qrLeftMargin = 40;    // Margines od lewej krawędzi sekcji
+    const uint16_t qrTopMargin = 30;     // Margines od góry dla QR
+    const uint16_t textTopMargin = 400;  // Tekst znacznie niżej
     const uint8_t textSize = 2;
 
     // Funkcja pomocnicza do centrowania tekstu w sekcji
@@ -516,7 +516,7 @@ void IRAM_ATTR right_button_ISR() {
   portEXIT_CRITICAL_ISR(&button_spinlock);
 }
 
-bool authorizeBT(){
+bool authorizeBT() {
   // 8 digit number formatted as string with leading zeros
   char challenge[9];
   snprintf(challenge, sizeof(challenge), "%08lu", random(0, 99999999));
@@ -546,7 +546,7 @@ bool authorizeBT(){
   }
   response.trim();
 
-  if(response == hmacHex){
+  if (response == hmacHex) {
     return true;
   } else {
     Serial.println("Auth error");
