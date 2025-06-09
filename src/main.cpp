@@ -18,9 +18,8 @@
 
 #define WAKEUP_BITMASK 0x6000
 #define DEVICE_NAME "E-wizytowka"
-#define SCREEN_CONNECTED 0  // 1 for testink with an eink
+#define SCREEN_CONNECTED 1  // 1 for testink with an eink
 #define SECURE_BT 0         // 1 to enable
-#define TIMEOUT 30000
 #define PIN_ENABLE 32
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
@@ -28,6 +27,7 @@ constexpr uint32_t DEEP_SLEEP_TIME_US = 30000000;
 constexpr uint16_t BT_TIME_TO_CONNECT_MS = 30000;
 constexpr uint16_t BT_AUTH_TIMEOUT_MS = 3000;
 constexpr uint16_t SERIAL_BT_TIMEOUT = 1000;
+constexpr uint16_t MAIN_SCREEN_TIMEOUT_MS = 30000;
 constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 512;
 constexpr uint8_t MAX_ACTIVE_SCREENS = 5;
 constexpr uint8_t BUTTON_LEFT_PIN = 14;
@@ -178,7 +178,7 @@ void loop() {
   }
 
   if (Screen != 0) {
-    if (screenTimeoutTimer > TIMEOUT) {
+    if (screenTimeoutTimer > MAIN_SCREEN_TIMEOUT_MS) {
       drawScreen0();
       screenTimeoutTimer = 0;
     }
