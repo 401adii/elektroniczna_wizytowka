@@ -1,9 +1,9 @@
 #include <BluetoothSerial.h>
+#include <Crypto.h>
 #include <FS.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include <GxEPD2_BW.h>
 #include <Preferences.h>
-#include <Crypto.h>
 #include <SHA256.h>
 #include <string.h>
 
@@ -19,7 +19,7 @@
 #define WAKEUP_BITMASK 0x6000
 #define DEVICE_NAME "E-wizytowka"
 #define SCREEN_CONNECTED 0  // 1 for testink with an eink
-#define SECURE_BT 1  // 1 to enable
+#define SECURE_BT 0         // 1 to enable
 #define TIMEOUT 30000
 #define PIN_ENABLE 32
 
