@@ -1,9 +1,11 @@
 #include <BluetoothSerial.h>
+#include <Crypto.h>
 #include <FS.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include <GxEPD2_BW.h>
 #include <Preferences.h>
-#include <SPIFFS.h>
+#include <SHA256.h>
+#include <string.h>
 
 #include "GxEPD2_display_selection_new_style.h"
 #include "ScreenManager.h"
@@ -16,7 +18,8 @@
 
 #define WAKEUP_BITMASK 0x6000
 #define DEVICE_NAME "E-wizytowka"
-#define SCREEN_CONNECTED 1  // 1 podczas testow z ekranem
+#define SCREEN_CONNECTED 0  // 1 for testink with an eink
+#define SECURE_BT 0         // 1 to enable
 #define TIMEOUT 30000
 #define PIN_ENABLE 32
 
@@ -28,7 +31,9 @@ constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 512;
 constexpr uint8_t MAX_ACTIVE_SCREENS = 5;
 constexpr uint8_t BUTTON_LEFT_PIN = 14;
 constexpr uint8_t BUTTON_RIGHT_PIN = 13;
+constexpr uint8_t HASH_SIZE = 32;
 constexpr char DATA_STORAGE_NAME[] = "storage";
+constexpr char SECRET_KEY[] = "testsecretkey123";
 int Screen = 0;
 
 static uint8_t qrcodeTemp[qrcodegen_BUFFER_LEN_MAX];
@@ -37,6 +42,7 @@ static portMUX_TYPE button_spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 bool isConnected = false;
 bool dataUpdated = false;
+bool isAuthorized = false;
 
 uint8_t button_pressed = 0; /*1 -> left; 2 -> right*/
 
@@ -45,6 +51,7 @@ elapsedMillis ledBlink;
 elapsedMillis connectWait;
 elapsedMillis screenTimeoutTimer;
 
+SHA256 sha256;
 Preferences Data;
 ScreenManager screenManager;
 
@@ -77,10 +84,11 @@ void parseAndSaveToNVS(const String &data);
 void drawQRCode(const char *text, int16_t x, int16_t y);
 void IRAM_ATTR left_button_ISR();
 void IRAM_ATTR right_button_ISR();
+bool authorizeBT();
 
 void setup() {
   pinMode(PIN_ENABLE, OUTPUT);
-  digitalWrite(PIN_ENABLE, HIGH); 
+  digitalWrite(PIN_ENABLE, HIGH);
 
   pinMode(BUTTON_LEFT_PIN, INPUT);
   pinMode(BUTTON_RIGHT_PIN, INPUT);
@@ -105,6 +113,8 @@ void setup() {
   });
 
   SerialBT.begin(DEVICE_NAME);
+  SerialBT.setPin("1234");
+  SerialBT.enableSSP();
   Serial.println("Waiting for BT connection...");
 
   screenManager.addScreen(0, &drawScreen0);
@@ -127,6 +137,11 @@ void loop() {
   }
 
   if (isConnected) {
+#if SECURE_BT
+    if (!isAuthorized) {
+      isAuthorized = authorizeBT();
+    }
+#endif
     digitalWrite(BUILTIN_LED, 1);
 
     if (SerialBT.available()) {
@@ -171,11 +186,13 @@ void loop() {
 
 void onBTConnect() {
   isConnected = true;
+  isAuthorized = false;
   Serial.println("Bluetooth device connected");
 }
 
 void onBTDisconnect() {
   isConnected = false;
+  isAuthorized = false;
   Serial.println("Bluetooth device disconnected");
 }
 
@@ -364,10 +381,10 @@ void drawScreen2() {
     const uint16_t halfWidth = screenWidth / 2;
 
     // Nowe stałe dla układu
-    const uint16_t qrSize = 300;          // Zwiększony rozmiar kodu QR
-    const uint16_t qrLeftMargin = 40;     // Margines od lewej krawędzi sekcji
-    const uint16_t qrTopMargin = 30;      // Margines od góry dla QR
-    const uint16_t textTopMargin = 400;    // Tekst znacznie niżej
+    const uint16_t qrSize = 300;         // Zwiększony rozmiar kodu QR
+    const uint16_t qrLeftMargin = 40;    // Margines od lewej krawędzi sekcji
+    const uint16_t qrTopMargin = 30;     // Margines od góry dla QR
+    const uint16_t textTopMargin = 400;  // Tekst znacznie niżej
     const uint8_t textSize = 2;
 
     // Funkcja pomocnicza do centrowania tekstu w sekcji
@@ -497,4 +514,43 @@ void IRAM_ATTR right_button_ISR() {
   portENTER_CRITICAL_ISR(&button_spinlock);
   button_pressed = 2;
   portEXIT_CRITICAL_ISR(&button_spinlock);
+}
+
+bool authorizeBT() {
+  // 8 digit number formatted as string with leading zeros
+  char challenge[9];
+  snprintf(challenge, sizeof(challenge), "%08lu", random(0, 99999999));
+
+  // Compute HMAC-SHA-256 of the challenge
+  uint8_t hmac[HASH_SIZE];
+  sha256.resetHMAC(SECRET_KEY, strlen(SECRET_KEY));
+  sha256.update(challenge, strlen(challenge));
+  sha256.finalizeHMAC(SECRET_KEY, strlen(SECRET_KEY), hmac, HASH_SIZE);
+
+  // Convert HMAC to hex string for comparison
+  char hmacHex[HASH_SIZE * 2 + 1];
+  for (int i = 0; i < HASH_SIZE; i++) {
+    sprintf(hmacHex + i * 2, "%02x", hmac[i]);
+  }
+  hmacHex[HASH_SIZE * 2] = '\0';
+  Serial.printf("Expected HMAC: %s\n", hmacHex);
+
+  SerialBT.println(challenge);
+
+  unsigned long start = millis();
+  String response = "";
+  while (millis() - start < BT_AUTH_TIMEOUT_MS && !response.endsWith("\n")) {
+    if (SerialBT.available()) {
+      response += (char)SerialBT.read();
+    }
+  }
+  response.trim();
+
+  if (response == hmacHex) {
+    return true;
+  } else {
+    Serial.println("Auth error");
+    SerialBT.disconnect();
+    return false;
+  }
 }
