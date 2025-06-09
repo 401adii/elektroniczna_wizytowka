@@ -20,11 +20,12 @@
 #define DEVICE_NAME "E-wizytowka"
 #define SCREEN_CONNECTED 0  // 1 for testink with an eink
 #define SECURE_BT 1  // 1 to enable
+#define TIMEOUT 30000
+#define PIN_ENABLE 32
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
 constexpr uint32_t DEEP_SLEEP_TIME_US = 30000000;
-constexpr uint16_t BT_TIME_TO_CONNECT_MS = 100000;
-constexpr uint16_t BT_AUTH_TIMEOUT_MS = 5000;
+constexpr uint16_t BT_TIME_TO_CONNECT_MS = 30000;
 constexpr uint16_t SERIAL_BT_TIMEOUT = 1000;
 constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 512;
 constexpr uint8_t MAX_ACTIVE_SCREENS = 5;
@@ -33,6 +34,7 @@ constexpr uint8_t BUTTON_RIGHT_PIN = 13;
 constexpr uint8_t HASH_SIZE = 32;
 constexpr char DATA_STORAGE_NAME[] = "storage";
 constexpr char SECRET_KEY[] = "testsecretkey123";
+int Screen = 0;
 
 static uint8_t qrcodeTemp[qrcodegen_BUFFER_LEN_MAX];
 static uint8_t qrcodeData[qrcodegen_BUFFER_LEN_MAX];
@@ -47,8 +49,9 @@ uint8_t button_pressed = 0; /*1 -> left; 2 -> right*/
 BluetoothSerial SerialBT;
 elapsedMillis ledBlink;
 elapsedMillis connectWait;
-SHA256 sha256;
+elapsedMillis screenTimeoutTimer;
 
+SHA256 sha256;
 Preferences Data;
 ScreenManager screenManager;
 
@@ -84,6 +87,9 @@ void IRAM_ATTR right_button_ISR();
 bool authorizeBT();
 
 void setup() {
+  pinMode(PIN_ENABLE, OUTPUT);
+  digitalWrite(PIN_ENABLE, HIGH); 
+
   pinMode(BUTTON_LEFT_PIN, INPUT);
   pinMode(BUTTON_RIGHT_PIN, INPUT);
   esp_sleep_enable_ext1_wakeup(WAKEUP_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
@@ -169,6 +175,13 @@ void loop() {
       dataUpdated = true;
     }
   }
+
+  if (Screen != 0) {
+    if (screenTimeoutTimer > TIMEOUT) {
+      drawScreen0();
+      screenTimeoutTimer = 0;
+    }
+  }
 }
 
 void onBTConnect() {
@@ -192,6 +205,8 @@ void saveStringToFlash(const String &key, const String &value) {
 }
 
 void drawScreen0() {
+  Screen = 0;
+  screenTimeoutTimer = 0;
   Serial.println("Print screen 0");
 #if SCREEN_CONNECTED
   display.setFullWindow();
@@ -248,6 +263,8 @@ void drawScreen0() {
 }
 
 void drawScreen1() {
+  Screen = 1;
+  screenTimeoutTimer = 0;
   Serial.println("Print screen 1");
 #if SCREEN_CONNECTED
   display.setTextSize(1);
@@ -340,6 +357,8 @@ void drawScreen1() {
 }
 
 void drawScreen2() {
+  Screen = 2;
+  screenTimeoutTimer = 0;
   Serial.println("Print screen 2");
 #if SCREEN_CONNECTED
   display.setFullWindow();
@@ -348,24 +367,47 @@ void drawScreen2() {
   do {
     display.fillScreen(GxEPD_WHITE);
 
-    /*
-    display.drawXBitmap(50, 50,obrazek1, 300, 300, GxEPD_BLACK);
-    display.drawXBitmap(400, 50,obrazek1, 300, 300, GxEPD_BLACK);
-   */
-
+    // Pobierz dane z pamięci
     Data.begin(DATA_STORAGE_NAME, true);
     String link1 = Data.getString("link1", "https://example.com/1");
     String link2 = Data.getString("link2", "https://example.com/2");
-
-    drawQRCode(link1.c_str(), 50, 50);  // lewy
-    display.setCursor(110, 400);
-    display.setTextSize(2);
-    display.print(Data.getString("tekst1", "napis1"));
-    drawQRCode(link2.c_str(), 460, 50);  // prawy
-    display.setCursor(430, 400);
-    display.setTextSize(2);
-    display.print(Data.getString("tekst2", "napis2"));
+    String text1 = Data.getString("tekst1", "napis1");
+    String text2 = Data.getString("tekst2", "napis2");
     Data.end();
+
+    // Parametry ekranu
+    const uint16_t screenWidth = display.width();
+    const uint16_t screenHeight = display.height();
+    const uint16_t halfWidth = screenWidth / 2;
+
+    // Nowe stałe dla układu
+    const uint16_t qrSize = 300;          // Zwiększony rozmiar kodu QR
+    const uint16_t qrLeftMargin = 40;     // Margines od lewej krawędzi sekcji
+    const uint16_t qrTopMargin = 30;      // Margines od góry dla QR
+    const uint16_t textTopMargin = 400;    // Tekst znacznie niżej
+    const uint8_t textSize = 2;
+
+    // Funkcja pomocnicza do centrowania tekstu w sekcji
+    auto centerText = [&](const String &text, uint16_t sectionX) {
+      int16_t x, y;
+      uint16_t w, h;
+      display.getTextBounds(text, 0, 0, &x, &y, &w, &h);
+      return sectionX + (halfWidth - w) / 2;
+    };
+
+    // Lewa sekcja
+    drawQRCode(link1.c_str(), qrLeftMargin, qrTopMargin);  // QR bliżej lewej krawędzi
+    display.setTextSize(textSize);
+    display.setCursor(centerText(text1, 0), textTopMargin);
+    display.print(text1);
+
+    // Prawa sekcja
+    const uint16_t rightQRX = halfWidth + qrLeftMargin;
+    drawQRCode(link2.c_str(), rightQRX, qrTopMargin);  // QR bliżej środka ekranu
+    display.setTextSize(textSize);
+    display.setCursor(centerText(text2, halfWidth), textTopMargin);
+    display.print(text2);
+
   } while (display.nextPage());
 #endif
 }
