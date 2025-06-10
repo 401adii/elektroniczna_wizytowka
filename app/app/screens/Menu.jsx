@@ -6,10 +6,12 @@ import BouncyCheckbox from 'react-native-bouncy-checkbox'
 
 const Menu = ({navigation, route}) => {
   
-  const {credentialsParam} = route.params
   const [screens, setScreens] = useState({0:1,
                                           1:1,
                                           2:1});
+  const [credentials, setCredentials] = useState("");
+  const [schedule, setSchedule] = useState("");
+  const [QR, setQR] = useState("");
 
 
 
@@ -22,55 +24,49 @@ const Menu = ({navigation, route}) => {
   }
   
   const parseScreensData = (screensData) => {
-    const obj = JSON.parse(screensData);
-    const formatted = Object.entries(obj)
+    const formatted = Object.entries(screens)
     .map(([key, value]) => `${key}:${String(value).replace(/"/g, '')}`) 
     .join('\n'); 
   
     return formatted + '\n\r';
   }
 
-  const parseCredentialsData = (credentialsData) => {
-    const obj = JSON.parse(credentialsData);
-    const entries = Object.entries(obj);
-
-    const formatted = entries.map(([key, value]) => {
-      const formattedKey = `${0}${key}`.padStart(2, '0');
-      return `${formattedKey}:${String(value).replace(/"/g, '')}`;
-    });
-
-    return formatted.join('\n') + '\n\r';
-  }
-
   const handleSendData = () => {
     const data = [];
     const screensData = parseScreensData(JSON.stringify(screens));
     data.push(screensData);
-    if(credentialsParam !== ""){
-      const credentialsData = parseCredentialsData(JSON.stringify(credentialsParam));
-      data.push(credentialsData);
+    if(credentials !== ""){
+      data.push(credentials);
     }
-    
+    if(QR !== ""){
+      data.push(QR);
+    }
+    if(schedule !== ""){
+      data.push(schedule)
+    }
+      
     console.log(data);
     navigation.navigate('Connect', {
       data: data
     })
   }
 
-
   return (
     <View className='flex-1 items-center justify-center gap-4'>
       <View className='flex-row gap-1'>
-        <Button text='Credentials' onPress={() => navigation.navigate('Credentials')}/>
+        <Button text='Credentials' onPress={() => navigation.navigate('Credentials', { onConfirm: (data) => setCredentials(data) })}/>
         <BouncyCheckbox isChecked={screens[0]} fillColor='rgb(255, 105, 0)' onPress={() => updateScreens(0)}/>  
       </View>
       <View className='flex-row gap-1'>
-        <Button text='Schedule' onPress={() => {}}/>
+        <Button text='Schedule' onPress={() => {navigation.navigate('Schedule', {onConfirm: (data) => setSchedule(data)})}}/>
         <BouncyCheckbox isChecked={screens[1]} fillColor='rgb(255, 105, 0)' onPress={() => updateScreens(1)}/>  
       </View>
       <View className='flex-row gap-1'>
-        <Button text='QR Codes' onPress={() => {}}/>
+        <Button text='QR Codes' onPress={() => navigation.navigate('QRCodes', {onConfirm: (data) => setQR(data)})}/>
         <BouncyCheckbox isChecked={screens[2]} fillColor='rgb(255, 105, 0)' onPress={() => updateScreens(2)}/>  
+      </View>
+      <View className='flex-row gap-1'>
+        <Button text='Prototype' onPress={() => navigation.navigate('Prototype')}/>
       </View>
       <Button onPress={() => handleSendData()} text='send data'/>
     </View>

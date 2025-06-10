@@ -12,6 +12,16 @@ const Credentials = ({navigation, route}) => {
         }));
     }
 
+    const parseData = () => {
+        const entries = Object.entries(data);
+
+        const formatted = entries.map(([key, value]) => {
+        const formattedKey = `${0}${key}`.padStart(2, '0');
+        return `${formattedKey}:${String(value).replace(/"/g, '')}`;
+        });
+        return formatted.join('\n') + '\n\r';
+  }
+
   return (
     <View className='flex-1 gap-4 items-center justify-center pb-80'>
         <View className='items-center'>
@@ -30,11 +40,13 @@ const Credentials = ({navigation, route}) => {
             <Text className='text-center'>Text 4</Text>
             <Input onChange={(value) => handleChange(4, value)}/>
         </View>
-        <Button text='confirm' onPress={() => navigation.popTo('Menu',
-            {
-                credentialsParam : data
+        <Button text='confirm' onPress={() =>{
+            const parsed = parseData();
+            if (route.params?.onConfirm) {
+            route.params.onConfirm(parsed);
             }
-        )}/>
+            navigation.goBack(); 
+        } }/>
     </View>
   )
 }
