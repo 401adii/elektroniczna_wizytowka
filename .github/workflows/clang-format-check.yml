@@ -10,5 +10,5 @@ jobs:
       uses: jidicula/clang-format-action@v4.15.0
       with:
         clang-format-version: '13'
-        check-path: 'src'
+        check-path: 'esp32/src'
         fallback-style: 'LLVM' # optional
