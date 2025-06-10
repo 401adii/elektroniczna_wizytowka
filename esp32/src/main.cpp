@@ -7,6 +7,7 @@
 #include <SHA256.h>
 #include <string.h>
 
+#include "../include/key.h"
 #include "GxEPD2_display_selection_new_style.h"
 #include "ScreenManager.h"
 #include "driver/rtc_io.h"
@@ -34,7 +35,7 @@ constexpr uint8_t BUTTON_LEFT_PIN = 14;
 constexpr uint8_t BUTTON_RIGHT_PIN = 13;
 constexpr uint8_t HASH_SIZE = 32;
 constexpr char DATA_STORAGE_NAME[] = "storage";
-constexpr char SECRET_KEY[] = "testsecretkey123";
+constexpr char SECRET_KEY[] = _SECRET_KEY;
 int Screen = 0;
 
 static uint8_t qrcodeTemp[qrcodegen_BUFFER_LEN_MAX];
