@@ -9,7 +9,7 @@ const MAX_ROWS = 10;
 
 const Schedule = ({navigation, route}) => {
 
-  const [headers, setHeaders] = useState([]);
+  const [headers, setHeaders] = useState(['','','']);
   const [rows, setRows] = useState([]);
 
   const addColumn = () => {
@@ -84,19 +84,37 @@ const Schedule = ({navigation, route}) => {
     .join('');
 };
 
-  const getCellsString = () => {
-    let result = '';
+const getFirstColumnValuesString = () => {
+  let result = '';
+  
+  rows.forEach((row, rowIndex) => {
+    if (row.data.length > 0 && row.data[0] && row.data[0].trim() !== '') {
+      result += `1hR${rowIndex + 1}:${row.data[0]}\n`;
+    }
+  });
+  
+  return result;
+};
+
+const getCellsString = () => {
+  let result = '';
+  
+  rows.forEach((row, rowIndex) => {
+    // Skip header row (rowIndex 0) and process only data rows
+    if (rowIndex === 0) return;
     
-    rows.forEach((row, rowIndex) => {
-      row.data.forEach((cell, colIndex) => {
-        if (cell.trim() !== '') {
-          result += `1${colIndex}${rowIndex}:${cell}\n`;
-        }
-      });
+    row.data.forEach((cell, colIndex) => {
+      // Skip column index 0 (first column)
+      if (colIndex === 0) return;
+      
+      if (cell.trim() !== '') {
+        result += `1${colIndex}${rowIndex}:${cell}\n`;
+      }
     });
-    
-    return result;
-  };
+  });
+  
+  return result;
+};
 
   const renderHeader = () => (
     <Row
@@ -152,11 +170,12 @@ const Schedule = ({navigation, route}) => {
           <Button text="clear table" onPress={() => {}}/>
           <Button text="confirm" onPress={() => {
             const dimensionsString = getTableDimensionsString();
+            const columnString = getFirstColumnValuesString();
             const headerString = getHeadersString();
             const cellString = getCellsString();
-            console.log(dimensionsString + headerString + cellString)
+            console.log(dimensionsString + headerString + columnString + cellString)
             if (route.params?.onConfirm){
-              route.params.onConfirm(dimensionsString + headerString + cellString + '\n\r')
+              route.params.onConfirm(dimensionsString + headerString + columnString +  cellString + '\n\r')
             }
             navigation.goBack();}}/>
         </View>
