@@ -172,8 +172,7 @@ void loop() {
   }
 
   if (dataUpdated) {
-
-    //clear 
+    // clear
     clear_table();
     clear_screen0();
     screenManager.readAndSetActiveScreens(Data, DATA_STORAGE_NAME);
