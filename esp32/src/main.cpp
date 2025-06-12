@@ -31,8 +31,8 @@ constexpr uint16_t SERIAL_BT_TIMEOUT = 1000;
 constexpr uint16_t MAIN_SCREEN_TIMEOUT_MS = 30000;
 constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 512;
 constexpr uint8_t MAX_ACTIVE_SCREENS = 5;
-constexpr uint8_t BUTTON_LEFT_PIN = 14;
-constexpr uint8_t BUTTON_RIGHT_PIN = 13;
+constexpr uint8_t BUTTON_LEFT_PIN = 13;
+constexpr uint8_t BUTTON_RIGHT_PIN = 14;
 constexpr uint8_t HASH_SIZE = 32;
 constexpr char DATA_STORAGE_NAME[] = "storage";
 constexpr char SECRET_KEY[] = _SECRET_KEY;
@@ -176,7 +176,6 @@ void loop() {
     //clear 
     clear_table();
     clear_screen0();
-
     screenManager.readAndSetActiveScreens(Data, DATA_STORAGE_NAME);
     dataUpdated = false;
     while (screenManager.printCurrentScreen() == ScreenManager::Status::CurrentNotActive) {
@@ -226,7 +225,7 @@ void drawScreen0() {
     display.fillScreen(GxEPD_WHITE);
     display.fillRect(0, 0, 800, 100, GxEPD_BLACK);
 
-    String room = Data.getString("01", "POKOJ 456");
+    String room = Data.getString("01", " ");
     int16_t x1, y1;
     uint16_t textWidth1, textHeight1;
     display.setTextSize(2);
@@ -236,7 +235,7 @@ void drawScreen0() {
     display.setTextColor(GxEPD_WHITE);
     display.print(room);
 
-    String name = Data.getString("02", "DR INZ. KAMIL STAWIARSKI");
+    String name = Data.getString("02", " ");
     int16_t x2, y2;
     uint16_t textWidth2, textHeight2;
     display.setTextSize(3);
@@ -246,7 +245,7 @@ void drawScreen0() {
     display.setTextColor(GxEPD_BLACK);
     display.print(name);
 
-    String tel = Data.getString("03", "tel. 123 456 789");
+    String tel = Data.getString("03", " ");
     int16_t x3, y3;
     uint16_t textWidth3, textHeight3;
     display.setTextSize(2);
@@ -255,7 +254,7 @@ void drawScreen0() {
     display.setCursor(centerX3, 300);
     display.print(tel);
 
-    String mail = Data.getString("04", "kamil.stawiarski@pg.edu.pl");
+    String mail = Data.getString("04", " ");
     int16_t x4, y4;
     uint16_t textWidth4, textHeight4;
     display.setTextSize(2);
@@ -303,7 +302,7 @@ void drawScreen1() {
       display.drawRect(x, 0, colWidth, gridYOffset, GxEPD_BLACK);
 
       String headerKey = "1hC" + String(col + 1);
-      String headerText = Data.getString(headerKey.c_str(), String(col + 1));
+      String headerText = Data.getString(headerKey.c_str(), " ");
 
       int16_t x1, y1;
       uint16_t w, h;
@@ -324,7 +323,7 @@ void drawScreen1() {
 
       // Pobierz tekst nagłówka wiersza
       String rowKey = "1hR" + String(row + 1);
-      String rowText = Data.getString(rowKey.c_str(), String(row + 1));
+      String rowText = Data.getString(rowKey.c_str(), " ");
 
       // Oblicz pozycję tekstu
       int16_t x1, y1;
@@ -571,10 +570,10 @@ void clear_table() {
 
   if (clearFlag == "1") {
     // Ustal maksymalne wymiary do czyszczenia
-    int maxCols = Data.getString("1x", "3").toInt();
-    int maxRows = Data.getString("1y", "5").toInt();
-    maxCols = constrain(maxCols, 1, 20);
-    maxRows = constrain(maxRows, 1, 20);
+    int maxCols = Data.getString("1x", "10").toInt();
+    int maxRows = Data.getString("1y", "8").toInt();
+    maxCols = 8;
+    maxRows = 10;
 
     // Czyszczenie komórek danych
     for (int row = 0; row < maxRows; row++) {
