@@ -1,11 +1,12 @@
 import {ScrollView, Text, FlatList, View} from 'react-native'
-import React, {useState, useEffect} from 'react'
+import React, {useState, useEffect, useRef} from 'react'
 import RequestPermission from '../modals/RequestPermission';
 import RNBluetoothClassic from 'react-native-bluetooth-classic'
 import EnableBluetooth from '../modals/EnableBluetooth';
 import DeviceListItem from '../components/DeviceListItem';
 import Button from '../components/Button';
 import PopUpWithButton from '../components/PopUpWithButton';
+import CryptoJS from 'crypto-js'
 
 const Connect = ({navigation, route}) => {
   
@@ -31,7 +32,8 @@ const Connect = ({navigation, route}) => {
     try{
       const connected = await device.connect({useExternal: true, DELIMITER: '\n'});
       if(connected === true && cancelFlag === false){
-        handleSend(device);
+        handleReceive(device);
+        
       }
       else{
         handleDisconnect(device);
@@ -44,7 +46,6 @@ const Connect = ({navigation, route}) => {
   }
 
   const handleSend = async (device) => {
-    console.log("sending data:", data);
     for(const str of data)
       try{
         console.log(str);
@@ -53,11 +54,31 @@ const Connect = ({navigation, route}) => {
       catch{
         console.error('error while sending', error);
       }
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      await handleDisconnect(device);
+  }
+
+  const handleReceive = async (device) => {
+    try {
+      let message;
+      do{
+        message = await device.read();
+      }while(message === null)
+      const clean = message.trim();
+      const hash = CryptoJS.HmacSHA256(clean, secretKey);
+      console.log(hash.toString(CryptoJS.enc.Hex));
+      await device.write(hash.toString(CryptoJS.enc.Hex) + "\n");
+      handleSend(device)
+    }
+    catch{
+      console.error('error while reading');
+    }
   }
 
   const handleDisconnect = async (device) => {
     setCancelFlag(false);
     try{
+      console.log('disconnecting')
       await device.disconnect();
     }
     catch{
@@ -65,9 +86,20 @@ const Connect = ({navigation, route}) => {
     }
   }
 
-  useEffect(() => {
+useEffect(() => {
     getDevices();
-  }, [])
+
+    const bluetoothEnabledSubscription = RNBluetoothClassic.onBluetoothEnabled(() => {
+      console.log('Bluetooth enabled - refreshing devices');
+      getDevices();
+    });
+
+    return () => {
+      if (bluetoothEnabledSubscription) {
+        bluetoothEnabledSubscription.remove();
+      }
+    };
+  }, []);
 
   return (
     <ScrollView>

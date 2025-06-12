@@ -6,11 +6,13 @@ import Button from '../components/Button'
 const MAX_CHARS = 20;
 const MAX_COLUMNS = 8;
 const MAX_ROWS = 10;
+const CLEAR_STR = 'clear_table:1\n\r'
 
 const Schedule = ({navigation, route}) => {
 
   const [headers, setHeaders] = useState(['','','']);
   const [rows, setRows] = useState([]);
+  const [clear, setClear] = useState(false);
 
   const addColumn = () => {
     if(headers.length >= MAX_COLUMNS) return;
@@ -69,7 +71,7 @@ const Schedule = ({navigation, route}) => {
   const getTableDimensionsString = () => {
     const columnCount = headers.length;
     const rowCount = rows.length;
-    return `1X:${columnCount}\n1Y:${rowCount}\n`;
+    return `1x:${columnCount-1}\n1y:${rowCount}\n`;
   }
 
   const getHeadersString = () => {
@@ -98,37 +100,44 @@ const getFirstColumnValuesString = () => {
 
 const getCellsString = () => {
   let result = '';
-  
-  rows.forEach((row, rowIndex) => {
-    // Skip header row (rowIndex 0) and process only data rows
-    if (rowIndex === 0) return;
-    
-    row.data.forEach((cell, colIndex) => {
-      // Skip column index 0 (first column)
-      if (colIndex === 0) return;
-      
-      if (cell.trim() !== '') {
-        result += `1${colIndex}${rowIndex}:${cell}\n`;
+  for (let j = 1; j < headers.length; j++) {
+    for (let i = 0; i < rows.length; i++) {
+      if (j < rows[i].data.length) {
+        const cellValue = rows[i].data[j];
+        if (cellValue.trim() !== '') {
+          result += `1${j}${i+1}:${cellValue}\n`;
+        }
       }
-    });
-  });
-  
+    }
+  }
   return result;
 };
 
   const renderHeader = () => (
     <Row
-      data={headers.map((header, index) => (
-        <TextInput
-        key={`header-${index}`}
-        value={header}
-        onChangeText={text => updateHeader(index, text)}
-        maxLength={MAX_CHARS}
-        style={{minWidth: 100, padding: 10, fontWeight: 'bold', textAlign: 'center'}}
-        placeHolder={`Col ${index + 1}`}
-        />
-      ))}
-    style={{heigth: 40}}/>
+      data={headers.map((header, index) => {
+        if (index === 0) {
+          return (
+            <Text
+              key={`header-${index}`}
+              style={{minWidth: 100, padding: 10, fontWeight: 'bold', textAlign: 'center'}}
+            >
+              {' '}
+            </Text>
+          );
+        }
+        return (
+          <TextInput
+            key={`header-${index}`}
+            value={header}
+            onChangeText={text => updateHeader(index, text)}
+            maxLength={MAX_CHARS}
+            style={{minWidth: 100, padding: 10, fontWeight: 'bold', textAlign: 'center'}} 
+          />
+        );
+      })}
+      style={{height: 40}}
+    />
   )
 
   const renderRows = () => (
@@ -151,8 +160,8 @@ const getCellsString = () => {
     <View className='flex-1 p-5'>
       <View className='flex-1 mb-10'>
         <ScrollView horizontal>
-          <ScrollView>
-            <Table borderStyle={{borderWidth: 1}}>
+          <ScrollView className='flex-1'>
+            <Table borderStyle={{borderWidth: 1, padding:5}}>
               {renderHeader()}
               {renderRows()}
             </Table>
@@ -167,15 +176,17 @@ const getCellsString = () => {
           <Button text="remove column" onPress={removeColumn}/>
         </View>
         <View className='items-center justify-center gap-2 flex-1'>
-          <Button text="clear table" onPress={() => {}}/>
+          <Button text={`clear data: ${clear ? 'yes' : 'no'}`} onPress={() => setClear(!clear)}/>
           <Button text="confirm" onPress={() => {
+            const flag = (clear ? CLEAR_STR : "")
             const dimensionsString = getTableDimensionsString();
             const columnString = getFirstColumnValuesString();
             const headerString = getHeadersString();
             const cellString = getCellsString();
-            console.log(dimensionsString + headerString + columnString + cellString)
+            const data = flag + dimensionsString + headerString + columnString + cellString
+            console.log(data)
             if (route.params?.onConfirm){
-              route.params.onConfirm(dimensionsString + headerString + columnString +  cellString + '\n\r')
+              route.params.onConfirm(data + '\n\r')
             }
             navigation.goBack();}}/>
         </View>

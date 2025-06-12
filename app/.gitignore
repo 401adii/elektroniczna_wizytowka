@@ -37,3 +37,5 @@ yarn-error.*
 
 android
 ios
+
+app/components/Password.jsx

@@ -65,9 +65,6 @@ const Menu = ({navigation, route}) => {
         <Button text='QR Codes' onPress={() => navigation.navigate('QRCodes', {onConfirm: (data) => setQR(data)})}/>
         <BouncyCheckbox isChecked={screens[2]} fillColor='rgb(255, 105, 0)' onPress={() => updateScreens(2)}/>  
       </View>
-      <View className='flex-row gap-1'>
-        <Button text='Prototype' onPress={() => navigation.navigate('Prototype')}/>
-      </View>
       <Button onPress={() => handleSendData()} text='send data'/>
     </View>
   )
