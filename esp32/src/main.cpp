@@ -20,7 +20,7 @@
 #define WAKEUP_BITMASK 0x6000
 #define DEVICE_NAME "E-wizytowka"
 #define SCREEN_CONNECTED 1  // 1 for testink with an eink
-#define SECURE_BT 0         // 1 to enable
+#define SECURE_BT 1         // 1 to enable
 #define PIN_ENABLE 32
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
@@ -572,6 +572,7 @@ bool authorizeBT() {
   // 8 digit number formatted as string with leading zeros
   char challenge[9];
   snprintf(challenge, sizeof(challenge), "%08lu", random(0, 99999999));
+  //snprintf(challenge, sizeof(challenge), "%08lu", (long)12345678);
 
   // Compute HMAC-SHA-256 of the challenge
   uint8_t hmac[HASH_SIZE];
@@ -585,8 +586,7 @@ bool authorizeBT() {
     sprintf(hmacHex + i * 2, "%02x", hmac[i]);
   }
   hmacHex[HASH_SIZE * 2] = '\0';
-  Serial.printf("Expected HMAC: %s\n", hmacHex);
-
+  Serial.printf("Expected HMAC HEX: %s\n", hmacHex);
   SerialBT.println(challenge);
 
   unsigned long start = millis();
@@ -597,6 +597,8 @@ bool authorizeBT() {
     }
   }
   response.trim();
+  Serial.print("response:          ");
+  Serial.println(response);
 
   if (response == hmacHex) {
     return true;
