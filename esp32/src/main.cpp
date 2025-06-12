@@ -31,8 +31,8 @@ constexpr uint16_t SERIAL_BT_TIMEOUT = 1000;
 constexpr uint16_t MAIN_SCREEN_TIMEOUT_MS = 30000;
 constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 512;
 constexpr uint8_t MAX_ACTIVE_SCREENS = 5;
-constexpr uint8_t BUTTON_LEFT_PIN = 14;
-constexpr uint8_t BUTTON_RIGHT_PIN = 13;
+constexpr uint8_t BUTTON_LEFT_PIN = 13;
+constexpr uint8_t BUTTON_RIGHT_PIN = 14;
 constexpr uint8_t HASH_SIZE = 32;
 constexpr char DATA_STORAGE_NAME[] = "storage";
 constexpr char SECRET_KEY[] = _SECRET_KEY;
@@ -87,6 +87,8 @@ void drawQRCode(const char *text, int16_t x, int16_t y);
 void IRAM_ATTR left_button_ISR();
 void IRAM_ATTR right_button_ISR();
 bool authorizeBT();
+void clear_table();
+void clear_screen0();
 
 void setup() {
   pinMode(PIN_ENABLE, OUTPUT);
@@ -170,6 +172,9 @@ void loop() {
   }
 
   if (dataUpdated) {
+    // clear
+    clear_table();
+    clear_screen0();
     screenManager.readAndSetActiveScreens(Data, DATA_STORAGE_NAME);
     dataUpdated = false;
     while (screenManager.printCurrentScreen() == ScreenManager::Status::CurrentNotActive) {
@@ -219,7 +224,7 @@ void drawScreen0() {
     display.fillScreen(GxEPD_WHITE);
     display.fillRect(0, 0, 800, 100, GxEPD_BLACK);
 
-    String room = Data.getString("01", "POKOJ 456");
+    String room = Data.getString("01", " ");
     int16_t x1, y1;
     uint16_t textWidth1, textHeight1;
     display.setTextSize(2);
@@ -229,7 +234,7 @@ void drawScreen0() {
     display.setTextColor(GxEPD_WHITE);
     display.print(room);
 
-    String name = Data.getString("02", "DR INZ. KAMIL STAWIARSKI");
+    String name = Data.getString("02", " ");
     int16_t x2, y2;
     uint16_t textWidth2, textHeight2;
     display.setTextSize(3);
@@ -239,7 +244,7 @@ void drawScreen0() {
     display.setTextColor(GxEPD_BLACK);
     display.print(name);
 
-    String tel = Data.getString("03", "tel. 123 456 789");
+    String tel = Data.getString("03", " ");
     int16_t x3, y3;
     uint16_t textWidth3, textHeight3;
     display.setTextSize(2);
@@ -248,7 +253,7 @@ void drawScreen0() {
     display.setCursor(centerX3, 300);
     display.print(tel);
 
-    String mail = Data.getString("04", "kamil.stawiarski@pg.edu.pl");
+    String mail = Data.getString("04", " ");
     int16_t x4, y4;
     uint16_t textWidth4, textHeight4;
     display.setTextSize(2);
@@ -285,69 +290,114 @@ void drawScreen1() {
   const int colWidth = (screenWidth - gridXOffset) / numCols;
   const int rowHeight = (screenHeight - gridYOffset) / numRows;
 
+  // Lambda to calculate text width using getTextBounds
+  auto getTextWidth = [&](const String &text) -> uint16_t {
+    int16_t x1, y1;
+    uint16_t w, h;
+    display.getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
+    return w;
+  };
+
+  // Lambda to shorten text to fit maxWidth
+  auto shortenTextToFit = [&](const String &text, uint16_t maxWidth) -> String {
+    if (text.isEmpty()) return text;
+
+    if (getTextWidth(text) <= maxWidth) return text;
+
+    const String ellipsis = "...";
+    uint16_t ellipsisWidth = getTextWidth(ellipsis);
+
+    if (ellipsisWidth > maxWidth) return "";
+
+    int low = 1;
+    int high = text.length();
+    String candidate;
+    int bestMatch = 0;
+
+    while (low <= high) {
+      int mid = (low + high) / 2;
+      candidate = text.substring(0, mid) + ellipsis;
+
+      if (getTextWidth(candidate) <= maxWidth) {
+        bestMatch = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    return (bestMatch > 0) ? text.substring(0, bestMatch) + ellipsis : ellipsis;
+  };
+
   display.setFullWindow();
   display.firstPage();
 
   do {
     display.fillScreen(GxEPD_WHITE);
 
+    // Column headers
     for (int col = 0; col < numCols; col++) {
       int x = gridXOffset + col * colWidth;
       display.drawRect(x, 0, colWidth, gridYOffset, GxEPD_BLACK);
 
       String headerKey = "1hC" + String(col + 1);
-      String headerText = Data.getString(headerKey.c_str(), String(col + 1));
+      String headerText = Data.getString(headerKey.c_str(), " ");
+
+      uint16_t maxAllowedHeaderWidth = colWidth - 4;
+      String headerToDisplay = shortenTextToFit(headerText, maxAllowedHeaderWidth);
 
       int16_t x1, y1;
       uint16_t w, h;
-      display.getTextBounds(headerText, 0, 0, &x1, &y1, &w, &h);
+      display.getTextBounds(headerToDisplay, 0, 0, &x1, &y1, &w, &h);
       int textX = x + (colWidth - w) / 2 - x1;
       int textY = (gridYOffset - h) / 2 - y1;
 
       display.setCursor(textX, textY);
-      display.print(headerText);
+      display.print(headerToDisplay);
     }
 
-    // Wiersze i komórki
+    // Rows and cells
     for (int row = 0; row < numRows; row++) {
       int y = gridYOffset + row * rowHeight;
 
-      // Nagłówek wiersza
+      // Row header
       display.drawRect(0, y, gridXOffset, rowHeight, GxEPD_BLACK);
 
-      // Pobierz tekst nagłówka wiersza
       String rowKey = "1hR" + String(row + 1);
-      String rowText = Data.getString(rowKey.c_str(), String(row + 1));
+      String rowText = Data.getString(rowKey.c_str(), " ");
 
-      // Oblicz pozycję tekstu
+      uint16_t maxAllowedRowWidth = gridXOffset - 4;
+      String rowToDisplay = shortenTextToFit(rowText, maxAllowedRowWidth);
+
       int16_t x1, y1;
       uint16_t w, h;
-      display.getTextBounds(rowText, 0, 0, &x1, &y1, &w, &h);
+      display.getTextBounds(rowToDisplay, 0, 0, &x1, &y1, &w, &h);
       int textX = (gridXOffset - w) / 2 - x1;
       int textY = y + (rowHeight - h) / 2 - y1;
 
       display.setCursor(textX, textY);
-      display.print(rowText);
+      display.print(rowToDisplay);
 
-      // Komórki danych
+      // Data cells
       for (int col = 0; col < numCols; col++) {
         int x = gridXOffset + col * colWidth;
         display.drawRect(x, y, colWidth, rowHeight, GxEPD_BLACK);
 
-        // Pobierz dane komórki
         String cellKey = "1" + String(col + 1) + String(row + 1);
         String cellValue = Data.getString(cellKey.c_str(), "");
 
-        if (cellValue.length() > 0) {
-          // Oblicz pozycję tekstu
+        if (!cellValue.isEmpty()) {
+          uint16_t maxAllowedCellWidth = colWidth - 4;
+          String cellToDisplay = shortenTextToFit(cellValue, maxAllowedCellWidth);
+
           int16_t x1_val, y1_val;
           uint16_t w_val, h_val;
-          display.getTextBounds(cellValue, 0, 0, &x1_val, &y1_val, &w_val, &h_val);
+          display.getTextBounds(cellToDisplay, 0, 0, &x1_val, &y1_val, &w_val, &h_val);
           int textX_val = x + (colWidth - w_val) / 2 - x1_val;
           int textY_val = y + (rowHeight - h_val) / 2 - y1_val;
 
           display.setCursor(textX_val, textY_val);
-          display.print(cellValue);
+          display.print(cellToDisplay);
         }
       }
     }
@@ -555,4 +605,66 @@ bool authorizeBT() {
     SerialBT.disconnect();
     return false;
   }
+}
+
+void clear_table() {
+#if SCREEN_CONNECTED
+  Data.begin(DATA_STORAGE_NAME, false);  // false = nie w trybie tylko do odczytu
+  String clearFlag = Data.getString("clear_table", "0");
+
+  if (clearFlag == "1") {
+    // Ustal maksymalne wymiary do czyszczenia
+    int maxCols = Data.getString("1x", "10").toInt();
+    int maxRows = Data.getString("1y", "8").toInt();
+    maxCols = 8;
+    maxRows = 10;
+
+    // Czyszczenie komórek danych
+    for (int row = 0; row < maxRows; row++) {
+      for (int col = 0; col < maxCols; col++) {
+        String key = "1" + String(col + 1) + String(row + 1);
+        Data.remove(key.c_str());
+      }
+    }
+
+    // Czyszczenie nagłówków kolumn
+    for (int col = 0; col < maxCols; col++) {
+      String key = "1hC" + String(col + 1);
+      Data.remove(key.c_str());
+    }
+
+    // Czyszczenie nagłówków wierszy
+    for (int row = 0; row < maxRows; row++) {
+      String key = "1hR" + String(row + 1);
+      Data.remove(key.c_str());
+    }
+
+    // Resetowanie flagi
+    Data.putString("clear_table", "0");
+  }
+
+  Data.end();
+#endif
+}
+
+void clear_screen0() {
+#if SCREEN_CONNECTED
+  Data.begin(DATA_STORAGE_NAME, false);  // false = tryb do zapisu
+  String clearFlag = Data.getString("clear_screen0", "0");
+
+  if (clearFlag == "1") {
+    // Usuń dane ekranowe
+    Data.remove("01");  // room
+    Data.remove("02");  // name
+    Data.remove("03");  // phone
+    Data.remove("04");  // email
+
+    // Resetuj flagę
+    Data.putString("clear_screen0", "0");
+
+    Serial.println("Screen 0 data cleared.");
+  }
+
+  Data.end();
+#endif
 }
