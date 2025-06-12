@@ -87,6 +87,8 @@ void drawQRCode(const char *text, int16_t x, int16_t y);
 void IRAM_ATTR left_button_ISR();
 void IRAM_ATTR right_button_ISR();
 bool authorizeBT();
+void clear_table();
+void clear_screen0();
 
 void setup() {
   pinMode(PIN_ENABLE, OUTPUT);
@@ -170,6 +172,11 @@ void loop() {
   }
 
   if (dataUpdated) {
+
+    //clear 
+    clear_table();
+    clear_screen0();
+
     screenManager.readAndSetActiveScreens(Data, DATA_STORAGE_NAME);
     dataUpdated = false;
     while (screenManager.printCurrentScreen() == ScreenManager::Status::CurrentNotActive) {
@@ -555,4 +562,66 @@ bool authorizeBT() {
     SerialBT.disconnect();
     return false;
   }
+}
+
+void clear_table() {
+#if SCREEN_CONNECTED
+  Data.begin(DATA_STORAGE_NAME, false); // false = nie w trybie tylko do odczytu
+  String clearFlag = Data.getString("clear_table", "0");
+
+  if (clearFlag == "1") {
+    // Ustal maksymalne wymiary do czyszczenia
+    int maxCols = Data.getString("1x", "3").toInt();
+    int maxRows = Data.getString("1y", "5").toInt();
+    maxCols = constrain(maxCols, 1, 20);
+    maxRows = constrain(maxRows, 1, 20);
+
+    // Czyszczenie komórek danych
+    for (int row = 0; row < maxRows; row++) {
+      for (int col = 0; col < maxCols; col++) {
+        String key = "1" + String(col + 1) + String(row + 1);
+        Data.remove(key.c_str());
+      }
+    }
+
+    // Czyszczenie nagłówków kolumn
+    for (int col = 0; col < maxCols; col++) {
+      String key = "1hC" + String(col + 1);
+      Data.remove(key.c_str());
+    }
+
+    // Czyszczenie nagłówków wierszy
+    for (int row = 0; row < maxRows; row++) {
+      String key = "1hR" + String(row + 1);
+      Data.remove(key.c_str());
+    }
+
+    // Resetowanie flagi
+    Data.putString("clear_table", "0");
+  }
+
+  Data.end();
+#endif
+}
+
+void clear_screen0() {
+#if SCREEN_CONNECTED
+  Data.begin(DATA_STORAGE_NAME, false); // false = tryb do zapisu
+  String clearFlag = Data.getString("clear_screen0", "0");
+
+  if (clearFlag == "1") {
+    // Usuń dane ekranowe
+    Data.remove("01");  // room
+    Data.remove("02");  // name
+    Data.remove("03");  // phone
+    Data.remove("04");  // email
+
+    // Resetuj flagę
+    Data.putString("clear_screen0", "0");
+
+    Serial.println("Screen 0 data cleared.");
+  }
+
+  Data.end();
+#endif
 }
