@@ -409,7 +409,6 @@ void drawScreen1() {
 #endif
 }
 
-
 void drawScreen2() {
   Screen = 2;
   screenTimeoutTimer = 0;
@@ -611,7 +610,7 @@ bool authorizeBT() {
 
 void clear_table() {
 #if SCREEN_CONNECTED
-  Data.begin(DATA_STORAGE_NAME, false); // false = nie w trybie tylko do odczytu
+  Data.begin(DATA_STORAGE_NAME, false);  // false = nie w trybie tylko do odczytu
   String clearFlag = Data.getString("clear_table", "0");
 
   if (clearFlag == "1") {
@@ -651,7 +650,7 @@ void clear_table() {
 
 void clear_screen0() {
 #if SCREEN_CONNECTED
-  Data.begin(DATA_STORAGE_NAME, false); // false = tryb do zapisu
+  Data.begin(DATA_STORAGE_NAME, false);  // false = tryb do zapisu
   String clearFlag = Data.getString("clear_screen0", "0");
 
   if (clearFlag == "1") {
