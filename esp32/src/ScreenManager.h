@@ -30,7 +30,7 @@ class ScreenManager {
  private:
   std::unordered_map<int, DrawFunction> screens;
   std::vector<int> activeScreens;
-  int currentScreen = -1;
+  int currentScreen = 0;
 
   void saveScreens(Preferences& data, const char* name) const;
   Status setCurrentScreen(int id);

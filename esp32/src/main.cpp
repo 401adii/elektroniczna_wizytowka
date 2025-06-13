@@ -23,7 +23,7 @@
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
 constexpr uint32_t DEEP_SLEEP_TIME_US = 10000000;
-constexpr uint16_t BT_TIME_TO_CONNECT_MS = 10000;
+constexpr uint16_t BT_TIME_TO_CONNECT_MS = 40000;
 constexpr uint16_t BT_AUTH_TIMEOUT_MS = 1500;
 constexpr uint16_t SERIAL_BT_TIMEOUT = 500;
 constexpr uint16_t MAIN_SCREEN_TIMEOUT_MS = 30000;
@@ -113,11 +113,12 @@ void loop() {
   if (button_pressed != 0) {
     if (button_pressed == 1) {
       // left
-      screenManager.prevScreen();
+      while(ScreenManager::Status::CurrentNotActive == screenManager.prevScreen());
     } else if (button_pressed == 2) {
       // right
       screenManager.nextScreen();
     }
+    connectWait = 0;
     screenManager.printCurrentScreen();
     button_pressed = 0;
   }
