@@ -7,6 +7,7 @@ import DeviceListItem from '../components/DeviceListItem';
 import Button from '../components/Button';
 import PopUpWithButton from '../components/PopUpWithButton';
 import CryptoJS from 'crypto-js'
+import { SECRETKEY } from '../components/Password';
 
 const Connect = ({navigation, route}) => {
   
@@ -65,7 +66,7 @@ const Connect = ({navigation, route}) => {
         message = await device.read();
       }while(message === null)
       const clean = message.trim();
-      const hash = CryptoJS.HmacSHA256(clean, secretKey);
+      const hash = CryptoJS.HmacSHA256(clean, SECRETKEY);
       console.log(hash.toString(CryptoJS.enc.Hex));
       await device.write(hash.toString(CryptoJS.enc.Hex) + "\n");
       handleSend(device)
