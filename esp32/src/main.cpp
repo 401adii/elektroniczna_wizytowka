@@ -114,6 +114,7 @@ void loop() {
     if (button_pressed == 1) {
       // left
       while (ScreenManager::Status::CurrentNotActive == screenManager.prevScreen());
+
     } else if (button_pressed == 2) {
       // right
       screenManager.nextScreen();
