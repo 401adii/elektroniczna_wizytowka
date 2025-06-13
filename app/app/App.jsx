@@ -6,7 +6,6 @@ import Connect from './screens/Connect'
 import Credentials from './screens/Credentials'
 import QRCodes from './screens/QRCodes'
 import Schedule from './screens/Schedule';
-import SchedulePrototype from './prototypes/SchedulePrototype';
 
 export default function App() {
   
@@ -39,9 +38,6 @@ export default function App() {
         options={{title: "Edit Schedule"}}
         component={Schedule}
         initialParams={{data : ""}}/>
-        <Stack.Screen
-        name='Prototype'
-        component={SchedulePrototype}/>
       </Stack.Navigator>
     </NavigationContainer>
   );
