@@ -22,7 +22,6 @@
 #define PIN_ENABLE 32
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
-constexpr uint32_t DEEP_SLEEP_TIME_US = 10000000;
 constexpr uint16_t BT_TIME_TO_CONNECT_MS = 40000;
 constexpr uint16_t BT_AUTH_TIMEOUT_MS = 1500;
 constexpr uint16_t SERIAL_BT_TIMEOUT = 500;
@@ -166,6 +165,7 @@ void loop() {
       screenManager.nextScreen();
       dataUpdated = true;
     }
+    connectWait = 0;
   }
 
   if (Screen != 0) {
@@ -457,7 +457,6 @@ void blinkLED() {
 void startDeepSleep() {
   Serial.println("zzzzz...");
   connectWait = 0;
-  esp_sleep_enable_timer_wakeup(DEEP_SLEEP_TIME_US);
   esp_deep_sleep_start();
 }
 
