@@ -1,6 +1,5 @@
 #include <BluetoothSerial.h>
 #include <Crypto.h>
-#include <FS.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include <GxEPD2_BW.h>
 #include <Preferences.h>
@@ -14,23 +13,22 @@
 #include "elapsedMillis.h"
 #include "esp_attr.h"
 #include "esp_sleep.h"
-#include "images.h"
 #include "qrcodegen.h"
 
 #define WAKEUP_BITMASK 0x6000
 #define DEVICE_NAME "E-wizytowka"
-#define SCREEN_CONNECTED 1  // 1 for testink with an eink
+#define SCREEN_CONNECTED 0  // 1 for testink with an eink
 #define SECURE_BT 1         // 1 to enable
 #define PIN_ENABLE 32
 
 constexpr uint16_t LED_BT_CONNECTING_BLINK_PERIOD_MS = 500;
-constexpr uint32_t DEEP_SLEEP_TIME_US = 30000000;
-constexpr uint16_t BT_TIME_TO_CONNECT_MS = 30000;
-constexpr uint16_t BT_AUTH_TIMEOUT_MS = 3000;
-constexpr uint16_t SERIAL_BT_TIMEOUT = 1000;
+constexpr uint32_t DEEP_SLEEP_TIME_US = 10000000;
+constexpr uint16_t BT_TIME_TO_CONNECT_MS = 40000;
+constexpr uint16_t BT_AUTH_TIMEOUT_MS = 1500;
+constexpr uint16_t SERIAL_BT_TIMEOUT = 500;
 constexpr uint16_t MAIN_SCREEN_TIMEOUT_MS = 30000;
-constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 512;
-constexpr uint8_t MAX_ACTIVE_SCREENS = 5;
+constexpr uint16_t MAX_BT_MESSAGE_LENGTH = 2048;
+constexpr uint8_t MAX_ACTIVE_SCREENS = 4;
 constexpr uint8_t BUTTON_LEFT_PIN = 13;
 constexpr uint8_t BUTTON_RIGHT_PIN = 14;
 constexpr uint8_t HASH_SIZE = 32;
@@ -56,22 +54,6 @@ elapsedMillis screenTimeoutTimer;
 SHA256 sha256;
 Preferences Data;
 ScreenManager screenManager;
-
-struct ScheduleEntry {
-  uint8_t day;   // dni tygodnia czyli 0 => pon, 4=> pt
-  uint8_t hour;  // godzina rozpoczecia
-  String text;   // to co ma byc wpisane
-};
-
-ScheduleEntry schedule[] = {
-    /*
-      {0, 14, "konsultacje"},
-      {1, 12, "konsultacje"},
-      {4, 11, "praca wlasna"},
-      {3, 9, "praca wlasna"},
-      {3, 10, "praca wlasna"}
-    */
-};
 
 void drawScreen0();
 void drawScreen1();
@@ -131,11 +113,14 @@ void loop() {
   if (button_pressed != 0) {
     if (button_pressed == 1) {
       // left
-      screenManager.prevScreen();
+      while (ScreenManager::Status::CurrentNotActive == screenManager.prevScreen()) {
+      };
+
     } else if (button_pressed == 2) {
       // right
       screenManager.nextScreen();
     }
+    connectWait = 0;
     screenManager.printCurrentScreen();
     button_pressed = 0;
   }
@@ -572,8 +557,6 @@ bool authorizeBT() {
   // 8 digit number formatted as string with leading zeros
   char challenge[9];
   snprintf(challenge, sizeof(challenge), "%08lu", random(0, 99999999));
-  //snprintf(challenge, sizeof(challenge), "%08lu", (long)12345678);
-
   // Compute HMAC-SHA-256 of the challenge
   uint8_t hmac[HASH_SIZE];
   sha256.resetHMAC(SECRET_KEY, strlen(SECRET_KEY));

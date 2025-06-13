@@ -3,7 +3,7 @@
 using DrawFunction = std::function<void()>;
 std::unordered_map<int, DrawFunction> screens;
 std::vector<int> activeScreens;
-int currentScreen = -1;
+int currentScreen;
 
 ScreenManager::Status ScreenManager::addScreen(int id, DrawFunction drawFunc) {
   if (screens.find(id) == screens.end()) {
