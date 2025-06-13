@@ -17,7 +17,7 @@
 
 #define WAKEUP_BITMASK 0x6000
 #define DEVICE_NAME "E-wizytowka"
-#define SCREEN_CONNECTED 0  // 1 for testink with an eink
+#define SCREEN_CONNECTED 1  // 1 for testink with an eink
 #define SECURE_BT 1         // 1 to enable
 #define PIN_ENABLE 32
 
@@ -100,7 +100,6 @@ void setup() {
   SerialBT.begin(DEVICE_NAME);
   SerialBT.setPin("1234");
   SerialBT.enableSSP();
-  Serial.println("Waiting for BT connection...");
 
   screenManager.addScreen(0, &drawScreen0);
   screenManager.addScreen(1, &drawScreen1);
@@ -134,11 +133,6 @@ void loop() {
 
     if (SerialBT.available()) {
       String receivedData = readSerialMessageBT();
-      Serial.println("Received data raw: " + receivedData);
-
-      // Print screen info
-      if (receivedData[0] == 'i') screenManager.printInfo();
-
       if (receivedData.length() > 0) {
         parseAndSaveToNVS(receivedData);
       }
@@ -179,27 +173,23 @@ void loop() {
 void onBTConnect() {
   isConnected = true;
   isAuthorized = false;
-  Serial.println("Bluetooth device connected");
 }
 
 void onBTDisconnect() {
   isConnected = false;
   isAuthorized = false;
-  Serial.println("Bluetooth device disconnected");
 }
 
 void saveStringToFlash(const String &key, const String &value) {
   Data.begin(DATA_STORAGE_NAME, false);
   Data.putString(key.c_str(), value);
   Data.end();
-  Serial.println("[NVS] Saved data: " + key + " = " + value);
   dataUpdated = true;
 }
 
 void drawScreen0() {
   Screen = 0;
   screenTimeoutTimer = 0;
-  Serial.println("Print screen 0");
 #if SCREEN_CONNECTED
   display.setFullWindow();
   display.firstPage();
@@ -257,7 +247,6 @@ void drawScreen0() {
 void drawScreen1() {
   Screen = 1;
   screenTimeoutTimer = 0;
-  Serial.println("Print screen 1");
 #if SCREEN_CONNECTED
   display.setTextSize(1);
   display.setFont(&FreeMonoBold9pt7b);
@@ -396,7 +385,6 @@ void drawScreen1() {
 void drawScreen2() {
   Screen = 2;
   screenTimeoutTimer = 0;
-  Serial.println("Print screen 2");
 #if SCREEN_CONNECTED
   display.setFullWindow();
   display.firstPage();
@@ -455,7 +443,6 @@ void blinkLED() {
 }
 
 void startDeepSleep() {
-  Serial.println("zzzzz...");
   connectWait = 0;
   esp_deep_sleep_start();
 }
@@ -473,7 +460,6 @@ String readSerialMessageBT() {
       }
 
       if (buffer.length() >= MAX_BT_MESSAGE_LENGTH) {
-        Serial.println("BT message too long!");
         return "";
       }
 
@@ -481,7 +467,6 @@ String readSerialMessageBT() {
     }
   }
 
-  Serial.println("Timeout waiting for BT message!");
   return "";
 }
 
@@ -523,7 +508,6 @@ void drawQRCode(const char *text, int16_t x, int16_t y) {
   bool ok = qrcodegen_encodeText(text, qrcodeTemp, qrcodeData, qrcodegen_Ecc_LOW, qrcodegen_VERSION_MIN,
                                  qrcodegen_VERSION_MAX, qrcodegen_Mask_AUTO, true);
   if (!ok) {
-    Serial.println("QR encode error");
     return;
   }
 
@@ -568,7 +552,6 @@ bool authorizeBT() {
     sprintf(hmacHex + i * 2, "%02x", hmac[i]);
   }
   hmacHex[HASH_SIZE * 2] = '\0';
-  Serial.printf("Expected HMAC HEX: %s\n", hmacHex);
   SerialBT.println(challenge);
 
   unsigned long start = millis();
@@ -579,13 +562,11 @@ bool authorizeBT() {
     }
   }
   response.trim();
-  Serial.print("response:          ");
   Serial.println(response);
 
   if (response == hmacHex) {
     return true;
   } else {
-    Serial.println("Auth error");
     SerialBT.disconnect();
     return false;
   }
@@ -645,8 +626,6 @@ void clear_screen0() {
 
     // Resetuj flagę
     Data.putString("clear_screen0", "0");
-
-    Serial.println("Screen 0 data cleared.");
   }
 
   Data.end();

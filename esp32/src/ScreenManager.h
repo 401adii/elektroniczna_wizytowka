@@ -25,7 +25,6 @@ class ScreenManager {
   Status prevScreen();
   Status printCurrentScreen() const;
   void readAndSetActiveScreens(Preferences& data, const char* name);
-  void printInfo() const;
 
  private:
   std::unordered_map<int, DrawFunction> screens;
@@ -34,6 +33,4 @@ class ScreenManager {
 
   void saveScreens(Preferences& data, const char* name) const;
   Status setCurrentScreen(int id);
-  void infoActiveScreens() const;
-  void infoCurrentScreen() const;
 };
