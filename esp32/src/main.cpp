@@ -555,8 +555,6 @@ bool authorizeBT() {
   // 8 digit number formatted as string with leading zeros
   char challenge[9];
   snprintf(challenge, sizeof(challenge), "%08lu", random(0, 99999999));
-  //snprintf(challenge, sizeof(challenge), "%08lu", (long)12345678);
-
   // Compute HMAC-SHA-256 of the challenge
   uint8_t hmac[HASH_SIZE];
   sha256.resetHMAC(SECRET_KEY, strlen(SECRET_KEY));
